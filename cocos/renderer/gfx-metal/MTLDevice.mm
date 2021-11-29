@@ -47,6 +47,10 @@
 #import "cocos/bindings/event/CustomEventTypes.h"
 #import "cocos/bindings/event/EventDispatcher.h"
 
+#if USE_AR_Module
+#include "cocos/ar/ARModule.h"
+#endif
+
 namespace cc {
 namespace gfx {
 
@@ -267,6 +271,13 @@ void CCMTLDevice::onPresentCompleted() {
         }
     }
     _inFlightSemaphore->signal();
+
+#if USE_AR_Module
+    auto *const armodule = cc::ar::ARModule::get();
+    if(armodule) {
+        armodule->syncTextureRef();
+    }
+#endif
 }
 
 Queue *CCMTLDevice::createQueue() {

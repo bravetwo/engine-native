@@ -74,6 +74,13 @@ private:
     gfx::PipelineLayout *     _pipelineLayout{nullptr};
     gfx::PipelineState *      _pipelineState{nullptr};
 
+    #if CC_PLATFORM == CC_PLATFORM_MAC_IOS
+    gfx::Buffer * _ycbcrTransferBuffer{nullptr};
+    vector<gfx::Texture *> _textures;
+    vector<gfx::GlobalBarrier *> _globalBarriers;
+    vector<gfx::TextureBarrier *> _textureBarriers;
+    #endif
+
     GLuint _glTex{0U};
     bool _setTexFlag = false;
 };

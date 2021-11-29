@@ -28,8 +28,15 @@
 #include "ar/ARModule.h"
 
 #if CC_PLATFORM == CC_PLATFORM_ANDROID
+
 #include "ar/android/ARCoreAPIImpl.h"
 using ARAPIImpl = cc::ar::ARCoreAPIImpl;
+
+#elif CC_PLATFORM == CC_PLATFORM_MAC_IOS
+
+#include "ar/ios/ARKitAPIImpl.h"
+using ARAPIImpl = cc::ar::ARKitAPIImpl;
+
 #elif CC_PLATFORM == CC_PLATFORM_WINDOWS
 #include "ar/IARAPI.h"
 #endif
@@ -40,7 +47,7 @@ namespace cc {
 namespace ar {
 
 ARModule::ARModule() {
-#if CC_PLATFORM == CC_PLATFORM_ANDROID
+#if CC_PLATFORM == CC_PLATFORM_ANDROID || CC_PLATFORM == CC_PLATFORM_MAC_IOS
     _impl = std::make_unique<ARAPIImpl>();
     arModuleInstance.reset(this);
 #endif
@@ -69,7 +76,8 @@ void ARModule::onPause() {
 }
 
 void ARModule::update() {
-    //_impl->update();
+    // IOS act
+    _impl->update();
 }
 
 bool ARModule::checkStart() {
@@ -96,6 +104,14 @@ float* ARModule::getCameraProjectionMatrix() const {
 // jsb skip
 float* ARModule::getCameraTexCoords() const {
     return _impl->getCameraTexCoords();
+}
+
+void* ARModule::getCameraTextureRef() const {
+    return _impl->getCameraTextureRef();
+}
+
+void ARModule::syncTextureRef() const {
+    _impl->syncTextureRef();
 }
 
 } // namespace ar

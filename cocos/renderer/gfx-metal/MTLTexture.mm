@@ -81,7 +81,7 @@ void CCMTLTexture::doInit(const TextureInfo &info) {
                         pixelBuffer, nil,
                         mtlFormat,
                         width, height,
-                        0,
+                        _info.layerCount,
                         &CVMTLTexture);
 
         CCASSERT(cvret == kCVReturnSuccess, @"Failed to create CoreVideo Metal texture from image");
@@ -91,6 +91,7 @@ void CCMTLTexture::doInit(const TextureInfo &info) {
         CFRelease(CVMTLTextureCache);
 
         CCASSERT(_mtlTexture, @"Failed to create Metal texture CoreVideo Metal Texture");
+        return;
     }
 
     if (!createMTLTexture()) {

@@ -25,46 +25,36 @@
 
 #pragma once
 
-#include <memory>
-#include "base/Macros.h"
-
-namespace se {
-
-class Object;
-class HandleObject;
-
-}
+#include "ar/IARAPI.h"
+#include <array>
 
 namespace cc {
 namespace ar {
 
-class IARAPI;
-
-class CC_DLL ARModule final {
+class ARKitAPIImpl : public IARAPI{
 public:
-    static ARModule* get();
+    ARKitAPIImpl();
+    ~ARKitAPIImpl() override;
+    void start() override;
+    void resume() override;
+    void pause() override;
+    void update() override;
+    bool checkStart() override;
 
-    ARModule();
-    ~ARModule();
-
-    void start();
-    void onResume();
-    void onPause();
-    void update();
-    bool checkStart();
-
-    void setCameraTextureName(int id);
-    float* getCameraPose() const;
-    float* getCameraViewMatrix() const;
-    float* getCameraProjectionMatrix() const;
-    float* getCameraTexCoords() const;
-    void* getCameraTextureRef() const;
-    void syncTextureRef() const;
-private:
-    std::unique_ptr<IARAPI> _impl;
+    void setCameraTextureName(int id) override;
+    float* getCameraPose() override;
+    float* getCameraViewMatrix() override;
+    float* getCameraProjectionMatrix() override;
+    float* getCameraTexCoords() override;
+    void* getCameraTextureRef() override;
+    void syncTextureRef() override;
+protected:
+    void* _impl;
+    Pose *_cameraPose = new Pose();
+    Matrix *_viewMatrix = new Matrix();
+    Matrix *_projMatrix = new Matrix();
+    TexCoords *_cameraTexCoords = new TexCoords();
 };
-
-static std::unique_ptr<ARModule> arModuleInstance;
 
 } // namespace ar
 } // namespace cc

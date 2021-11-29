@@ -1839,7 +1839,12 @@ if(USE_AR_MODULE)
         cocos/ar/android/ARCoreAPIImpl.cpp
         cocos/ar/android/ARCoreAPIImpl.h
     )
-endif()
+    elseif(IOS)
+    cocos_source_files(
+        cocos/ar/ios/ARKitAPIImpl.cpp
+        cocos/ar/ios/ARKitAPIImpl.h
+    )
+    endif()
 endif()
 
 ##### extensions

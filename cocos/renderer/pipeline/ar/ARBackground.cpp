@@ -60,7 +60,7 @@ void ARBackground::activate(RenderPipeline *pipeline, gfx::Device* dev) {
     #pragma region _shader
 
     ShaderSources<StandardShaderSource> sources;
-
+    /*
     sources.glsl4 = {
         R"(
             precision highp float;
@@ -88,7 +88,40 @@ void ARBackground::activate(RenderPipeline *pipeline, gfx::Device* dev) {
             }
         )",
     };
+    //*/
+    //*
+    sources.glsl4 = {
+        R"(
+            precision highp float;
+            layout(location = 0) in vec2 a_position;
+            layout(location = 1) in vec2 a_texCoord;
+            layout(set = 1, binding = 0) uniform Mats {
+                mat4 u_MVP;
+                mat4 u_CoordMatrix;
+            };
 
+            layout(location = 0) out vec2 v_texCoord;
+            void main() {
+                v_texCoord = (u_CoordMatrix * vec4(a_texCoord, 0, 1)).xy;
+                gl_Position = u_MVP * vec4(a_position, 0, 1);
+            }
+        )",
+        R"(
+            precision highp float;
+            layout(location = 0) in vec2 v_texCoord;
+            layout(set = 1, binding = 1) uniform sampler2D u_texture[2];
+            layout(set = 1, binding = 2) uniform Transfer_Mat {
+                mat4 u_YCbCrToRGB;
+            };
+
+            layout(location = 0) out vec4 o_color;
+            void main() {
+                vec4 ycbcr = vec4(texture(u_texture[0], v_texCoord).r, texture(u_texture[1], v_texCoord).rg, 1);
+                o_color = u_YCbCrToRGB * ycbcr;
+            }
+        )",
+    };
+    //*/
     sources.glsl3 = {
         R"(
             in vec2 a_position;
@@ -163,9 +196,15 @@ void ARBackground::activate(RenderPipeline *pipeline, gfx::Device* dev) {
         {"a_texCoord", gfx::Format::RG32F, false, 0, false, 1},
     };
 
+    
+#if CC_PLATFORM == CC_PLATFORM_ANDROID
     gfx::UniformBlockList blockList = {{materialSet, 0, "Mats", {{"u_MVP", gfx::Type::MAT4, 1}, {"u_CoordMatrix", gfx::Type::MAT4, 1}}, 2}};
     gfx::UniformSamplerTextureList samplerTextures = {{materialSet, 1, "u_texture", gfx::Type::SAMPLER2D, 1}};
-
+#elif CC_PLATFORM == CC_PLATFORM_MAC_IOS
+    gfx::UniformBlockList blockList = {{materialSet, 0, "Mats", {{"u_MVP", gfx::Type::MAT4, 1}, {"u_CoordMatrix", gfx::Type::MAT4, 1}}, 2}, {materialSet, 2, "Transfer_Mat", {{"u_YCbCrToRGB", gfx::Type::MAT4, 1}}, 1}};
+    gfx::UniformSamplerTextureList samplerTextures = {{materialSet, 1, "u_texture", gfx::Type::SAMPLER2D, 2}};
+    //gfx::UniformSamplerTextureList samplerTextures = {{materialSet, 1, "u_texture", gfx::Type::SAMPLER2D, 1}};
+#endif
     gfx::ShaderInfo shaderInfo;
     shaderInfo.name            = "ARBackGround";
     shaderInfo.stages          = std::move(shaderStageList);
@@ -241,23 +280,70 @@ void ARBackground::activate(RenderPipeline *pipeline, gfx::Device* dev) {
 
     gfx::DescriptorSetLayoutInfo dslInfo;
     dslInfo.bindings.push_back({0, gfx::DescriptorType::UNIFORM_BUFFER, 1, gfx::ShaderStageFlagBit::VERTEX});
+#if CC_PLATFORM == CC_PLATFORM_ANDROID
     dslInfo.bindings.push_back({1, gfx::DescriptorType::SAMPLER_TEXTURE, 1, gfx::ShaderStageFlagBit::FRAGMENT});
+#elif CC_PLATFORM == CC_PLATFORM_MAC_IOS
+    dslInfo.bindings.push_back({1, gfx::DescriptorType::SAMPLER_TEXTURE, 2, gfx::ShaderStageFlagBit::FRAGMENT});
+    //dslInfo.bindings.push_back({1, gfx::DescriptorType::SAMPLER_TEXTURE, 1, gfx::ShaderStageFlagBit::FRAGMENT});
+    dslInfo.bindings.push_back({2, gfx::DescriptorType::UNIFORM_BUFFER, 1, gfx::ShaderStageFlagBit::FRAGMENT});
+#endif
     _descriptorSetLayout = _device->createDescriptorSetLayout(dslInfo);
     //*
     _descriptorSet = _device->createDescriptorSet({_descriptorSetLayout});
-    _descriptorSet->bindBuffer(0, _uniformBuffer);
+    //_descriptorSet->bindBuffer(0, _uniformBuffer);
+
+#if CC_PLATFORM == CC_PLATFORM_MAC_IOS
+    gfx::BufferInfo transferUniformBufferInfo = {
+        gfx::BufferUsage::UNIFORM,
+        gfx::MemoryUsage::DEVICE,
+        sizeof(Mat4),
+    };
+    float transferMats[] = {
+        1.0000f, 1.0000f, 1.0000f, 0.0000f, 
+        0.0000f, -.3441f, 1.7720f, 0.0000f, 
+        1.4020f, -.7141f, 0.0000f, 0.0000f, 
+        -.7010f, 0.5291f, -.8860f, 1.0000f
+    };
+    _ycbcrTransferBuffer = _device->createBuffer(transferUniformBufferInfo);
+    _ycbcrTransferBuffer->update(transferMats, sizeof(Mat4));
+    //_descriptorSet->bindBuffer(2, _ycbcrTransferBuffer);
+
+    _globalBarriers.push_back(_device->getGlobalBarrier({
+        {
+            gfx::AccessType::TRANSFER_WRITE,
+        },
+        {
+            gfx::AccessType::VERTEX_SHADER_READ_UNIFORM_BUFFER,
+            //gfx::AccessType::VERTEX_BUFFER,
+            //gfx::AccessType::INDEX_BUFFER,
+        },
+    }));
+    _textureBarriers.push_back(_device->getTextureBarrier({
+        {
+            gfx::AccessType::TRANSFER_WRITE,
+        },
+        {
+            gfx::AccessType::FRAGMENT_SHADER_READ_TEXTURE,
+        }
+    }));
+    
+    _textures.resize(2);
+#endif
+
     //_descriptorSet->bindSampler(1, sampler);
     //_descriptorSet->bindTexture(1, backgroundTex);
-    _descriptorSet->update();
+    //_descriptorSet->update();
     //*/
     _pipelineLayout = _device->createPipelineLayout({{pipeline->getDescriptorSetLayout(), _descriptorSetLayout}});
 
+#if CC_PLATFORM == CC_PLATFORM_ANDROID
     // background id
     auto *deviceAgent = gfx::DeviceAgent::getInstance();
     deviceAgent->setMultithreaded(false);
     // GL-Specific invocations
     glGenTextures(1, &_glTex);
     deviceAgent->setMultithreaded(true);
+#endif
 }
 
 void ARBackground::render(scene::Camera *camera, gfx::RenderPass *renderPass, gfx::CommandBuffer *cmdBuffer) {
@@ -274,10 +360,12 @@ void ARBackground::render(scene::Camera *camera, gfx::RenderPass *renderPass, gf
     if(!armodule) return;
     if(!armodule->checkStart()) return;
     if(!_setTexFlag) {
-        armodule->setCameraTextureName(static_cast<int>(_glTex));
-
         gfx::SamplerInfo samplerInfo;
         auto *           sampler = _device->getSampler(samplerInfo);
+
+    #if CC_PLATFORM == CC_PLATFORM_ANDROID
+        armodule->setCameraTextureName(static_cast<int>(_glTex));
+
         gfx::TextureInfo textureInfo;
         textureInfo.usage  = gfx::TextureUsage::SAMPLED | gfx::TextureUsage::TRANSFER_SRC;
         textureInfo.format = gfx::Format::RGBA16F;
@@ -290,16 +378,54 @@ void ARBackground::render(scene::Camera *camera, gfx::RenderPass *renderPass, gf
         _descriptorSet->bindSampler(1, sampler);
         _descriptorSet->bindTexture(1, backgroundTex);
         _descriptorSet->update();
-
+    #endif
         _setTexFlag = true;
     }
+
+#if CC_PLATFORM == CC_PLATFORM_MAC_IOS
+    gfx::SamplerInfo samplerInfo;
+    auto *           sampler = _device->getSampler(samplerInfo);
+    auto *pixelBuffer = armodule->getCameraTextureRef();
+
+    gfx::TextureInfo yTexInfo;
+    yTexInfo.usage  = gfx::TextureUsage::SAMPLED | gfx::TextureUsage::TRANSFER_SRC;
+    //yTexInfo.format = gfx::Format::R16F;
+    yTexInfo.format = gfx::Format::R8;
+    yTexInfo.width = camera->width;
+    yTexInfo.height = camera->height;
+    yTexInfo.externalRes = pixelBuffer;
+    yTexInfo.layerCount = 0;
+    gfx::TextureInfo cbcrTexInfo;
+    cbcrTexInfo.usage  = gfx::TextureUsage::SAMPLED | gfx::TextureUsage::TRANSFER_SRC;
+    //cbcrTexInfo.format = gfx::Format::RG16F;
+    cbcrTexInfo.format = gfx::Format::RG8;
+    cbcrTexInfo.width = camera->width;
+    cbcrTexInfo.height = camera->height;
+    cbcrTexInfo.externalRes = pixelBuffer;
+    cbcrTexInfo.layerCount = 1;
+
+    _textures[0] = _device->createTexture(yTexInfo);
+    _textures[1] = _device->createTexture(cbcrTexInfo);
+    _descriptorSet->bindBuffer(0, _uniformBuffer);
+    _descriptorSet->bindBuffer(2, _ycbcrTransferBuffer);
+    _descriptorSet->bindSampler(1, sampler);
+    //_descriptorSet->bindTexture(1, yTex);
+    _descriptorSet->bindTexture(1, _textures[0]);
+    _descriptorSet->bindSampler(1, sampler, 1);
+    //_descriptorSet->bindTexture(1, cbcrTex, 1); 
+    _descriptorSet->bindTexture(1, _textures[1], 1);
+    _descriptorSet->update();
+#endif
+
+#if CC_PLATFORM == CC_PLATFORM_ANDROID
     auto *const data = armodule->getCameraTexCoords();
     float vertices[] = {-1, -1, data[0], data[1],
                         -1, 1, data[2], data[3],
                         1, -1, data[4], data[5],
                         1, 1, data[6], data[7]};
     _vertexBuffer->update(vertices, sizeof(vertices));
-    
+#endif
+
     gfx::PipelineStateInfo pipelineInfo;
     pipelineInfo.shader         = _shader;
     pipelineInfo.pipelineLayout = _pipelineLayout;
@@ -308,6 +434,7 @@ void ARBackground::render(scene::Camera *camera, gfx::RenderPass *renderPass, gf
 
     _pipelineState = _device->createPipelineState(pipelineInfo);
 
+    cmdBuffer->pipelineBarrier(_globalBarriers[0], _textureBarriers.data(), _textures.data(), 1);
     cmdBuffer->bindInputAssembler(_inputAssembler);
     cmdBuffer->bindPipelineState(_pipelineState);
     cmdBuffer->bindDescriptorSet(materialSet, _descriptorSet);

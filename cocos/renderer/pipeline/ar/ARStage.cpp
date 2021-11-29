@@ -151,7 +151,7 @@ void ARStage::render(scene::Camera *camera) {
 
         data.outputTex   = builder.write(data.outputTex, colorAttachmentInfo);
 
-        /*/ depth
+        // depth
         gfx::TextureInfo depthTexInfo{
             gfx::TextureType::TEX2D,
             gfx::TextureUsageBit::DEPTH_STENCIL_ATTACHMENT,

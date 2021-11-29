@@ -55,6 +55,8 @@ public:
     virtual float* getCameraViewMatrix() = 0;
     virtual float* getCameraProjectionMatrix() = 0;
     virtual float* getCameraTexCoords() = 0;
+    virtual void* getCameraTextureRef() = 0;
+    virtual void syncTextureRef() = 0;
 };
 
 } // namespace ar
