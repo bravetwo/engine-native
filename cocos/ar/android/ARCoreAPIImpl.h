@@ -1,5 +1,5 @@
 /****************************************************************************
- Copyright (c) 2020-2021 Xiamen Yaji Software Co., Ltd.
+ Copyright (c) 2021 Xiamen Yaji Software Co., Ltd.
 
  http://www.cocos.com
 
@@ -23,56 +23,39 @@
  THE SOFTWARE.
 ****************************************************************************/
 
-#include "ForwardFlow.h"
-#include "../SceneCulling.h"
-#include "ForwardPipeline.h"
-#include "ForwardStage.h"
+#pragma once
 
-#if USE_AR_MODULE
-#include "../ar/ARStage.h"
-#endif
+#include "ar/IARAPI.h"
+#include "renderer/gfx-agent/DeviceAgent.h"
+#include <array>
+
+class _jobject;
 
 namespace cc {
-namespace pipeline {
-RenderFlowInfo ForwardFlow::initInfo = {
-    "ForwardFlow",
-    static_cast<uint>(ForwardFlowPriority::FORWARD),
-    static_cast<uint>(RenderFlowTag::SCENE),
-    {},
+namespace ar {
+
+class ARCoreAPIImpl : public IARAPI{
+public:
+    ARCoreAPIImpl();
+    ~ARCoreAPIImpl() override;
+    void start() override;
+    void resume() override;
+    void pause() override;
+    void update() override;
+    bool checkStart() override;
+
+    void setCameraTextureName(int id) override;
+    float* getCameraPose() override;
+    float* getCameraViewMatrix() override;
+    float* getCameraProjectionMatrix() override;
+    float* getCameraTexCoords() override;
+protected:
+    _jobject* _impl;
+    Pose *_cameraPose = new Pose();
+    Matrix *_viewMatrix = new Matrix();
+    Matrix *_projMatrix = new Matrix();
+    TexCoords *_cameraTexCoords = new TexCoords();
 };
-const RenderFlowInfo &ForwardFlow::getInitializeInfo() { return ForwardFlow::initInfo; }
 
-ForwardFlow::~ForwardFlow() = default;
-
-bool ForwardFlow::initialize(const RenderFlowInfo &info) {
-    RenderFlow::initialize(info);
-
-    if (_stages.empty()) {
-        #if USE_AR_MODULE
-            auto *arStage = CC_NEW(ARStage);
-            arStage->initialize(ARStage::getInitializeInfo());
-            _stages.emplace_back(arStage);
-        #endif
-
-        auto *forwardStage = CC_NEW(ForwardStage);
-        forwardStage->initialize(ForwardStage::getInitializeInfo());
-        _stages.emplace_back(forwardStage);
-    }
-
-    return true;
-}
-
-void ForwardFlow::activate(RenderPipeline *pipeline) {
-    RenderFlow::activate(pipeline);
-}
-
-void ForwardFlow::render(scene::Camera *camera) {
-    RenderFlow::render(camera);
-}
-
-void ForwardFlow::destroy() {
-    RenderFlow::destroy();
-}
-
-} // namespace pipeline
+} // namespace ar
 } // namespace cc

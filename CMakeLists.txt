@@ -27,7 +27,7 @@ cc_set_if_undefined(USE_JOB_SYSTEM_TASKFLOW  OFF)
 cc_set_if_undefined(USE_JOB_SYSTEM_TBB       OFF)
 cc_set_if_undefined(USE_PHYSICS_PHYSX        OFF)
 cc_set_if_undefined(USE_MODULES              OFF)
-
+cc_set_if_undefined(USE_AR_MODULE            OFF)
 
 if(ANDROID OR WINDOWS)
     cc_set_if_undefined(CC_USE_GLES3 ON)
@@ -118,6 +118,7 @@ cc_inspect_values(
     USE_PHYSICS_PHYSX
     USE_JOB_SYSTEM_TBB
     USE_JOB_SYSTEM_TASKFLOW
+    USE_AR_MODULE
 )
 
 ################################# external source code ################################
@@ -1542,6 +1543,13 @@ if(USE_MIDDLEWARE)
     endif()
 endif()
 
+if(USE_AR_MODULE)
+    cocos_source_files(
+        cocos/bindings/auto/jsb_ar_auto.cpp
+        cocos/bindings/auto/jsb_ar_auto.h
+    )
+endif()
+
 ######## manual
 cocos_source_files(
     NO_WERROR    cocos/bindings/manual/jsb_classtype.cpp
@@ -1611,6 +1619,13 @@ elseif(APPLE)
 elseif(WIN32)
     cocos_source_files(
         NO_WERROR    cocos/bindings/manual/jsb_platfrom_win32.cpp
+    )
+endif()
+
+if(USE_AR_MODULE)
+    cocos_source_files(
+        cocos/bindings/manual/jsb_ar_manual.cpp
+        cocos/bindings/manual/jsb_ar_manual.h
     )
 endif()
 
@@ -1808,6 +1823,25 @@ elseif(WIN32)
     endif()
 endif()
 
+##### ar
+if(USE_AR_MODULE)
+    cocos_source_files(
+        cocos/ar/ARModule.cpp
+        cocos/ar/ARModule.h
+        cocos/ar/IARAPI.h
+        cocos/renderer/pipeline/ar/ARStage.cpp
+        cocos/renderer/pipeline/ar/ARStage.h
+        cocos/renderer/pipeline/ar/ARBackground.cpp
+        cocos/renderer/pipeline/ar/ARBackground.h
+    )
+    if(ANDROID)
+    cocos_source_files(
+        cocos/ar/android/ARCoreAPIImpl.cpp
+        cocos/ar/android/ARCoreAPIImpl.h
+    )
+endif()
+endif()
+
 ##### extensions
 
 cocos_source_files(
@@ -1959,6 +1993,7 @@ function(cc_apply_definations target)
         $<IF:$<BOOL:${USE_JOB_SYSTEM_TBB}>,USE_JOB_SYSTEM_TBB=1,USE_JOB_SYSTEM_TBB=0>
         $<IF:$<BOOL:${USE_JOB_SYSTEM_TASKFLOW}>,USE_JOB_SYSTEM_TASKFLOW=1,USE_JOB_SYSTEM_TASKFLOW=0>
         $<IF:$<BOOL:${USE_PHYSICS_PHYSX}>,USE_PHYSICS_PHYSX=1,USE_PHYSICS_PHYSX=0>
+        $<IF:$<BOOL:${USE_AR_MODULE}>,USE_AR_MODULE=1,USE_AR_MODULE=0>
         $<$<BOOL:${USE_SE_JSC}>:SCRIPT_ENGINE_TYPE=3>
         $<$<CONFIG:Debug>:CC_DEBUG=1>
     )

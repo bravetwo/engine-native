@@ -1,5 +1,5 @@
 /****************************************************************************
- Copyright (c) 2020-2021 Xiamen Yaji Software Co., Ltd.
+ Copyright (c) 2021 Xiamen Yaji Software Co., Ltd.
 
  http://www.cocos.com
 
@@ -23,56 +23,53 @@
  THE SOFTWARE.
 ****************************************************************************/
 
-#include "ForwardFlow.h"
-#include "../SceneCulling.h"
-#include "ForwardPipeline.h"
-#include "ForwardStage.h"
+#pragma once
 
-#if USE_AR_MODULE
-#include "../ar/ARStage.h"
+#define USE_BLIT 0
+#include "../RenderStage.h"
+#include "gfx-gles3/GLES3Wrangler.h"
+#if !USE_BLIT
+#include "../ar/ARBackground.h"
 #endif
 
 namespace cc {
 namespace pipeline {
-RenderFlowInfo ForwardFlow::initInfo = {
-    "ForwardFlow",
-    static_cast<uint>(ForwardFlowPriority::FORWARD),
-    static_cast<uint>(RenderFlowTag::SCENE),
-    {},
+
+class RenderFlow;
+class RenderBatchedQueue;
+class RenderInstancedQueue;
+class RenderAdditiveLightQueue;
+class PlanarShadowQueue;
+class ForwardPipeline;
+class UIPhase;
+// ARModule ADD, need remove after modify
+class ARBackground;
+
+class CC_DLL ARStage : public RenderStage {
+public:
+    static const RenderStageInfo &getInitializeInfo();
+
+    ARStage();
+    ~ARStage() override;
+
+    bool initialize(const RenderStageInfo &info) override;
+    void activate(RenderPipeline *pipeline, RenderFlow *flow) override;
+    void destroy() override;
+    void render(scene::Camera *camera) override;
+
+private:
+    void                      dispenseRenderObject2Queues();
+    static RenderStageInfo    initInfo;
+
+    #if !USE_BLIT
+    ARBackground *            _arBackground       = nullptr;
+    #endif
+    gfx::Rect                 _renderArea;
+    uint                      _phaseID = 0;
+    gfx::Texture *_backgroundTex{nullptr};
+    GLuint _glTex{0U};
+    bool _setTexFlag = false;
 };
-const RenderFlowInfo &ForwardFlow::getInitializeInfo() { return ForwardFlow::initInfo; }
-
-ForwardFlow::~ForwardFlow() = default;
-
-bool ForwardFlow::initialize(const RenderFlowInfo &info) {
-    RenderFlow::initialize(info);
-
-    if (_stages.empty()) {
-        #if USE_AR_MODULE
-            auto *arStage = CC_NEW(ARStage);
-            arStage->initialize(ARStage::getInitializeInfo());
-            _stages.emplace_back(arStage);
-        #endif
-
-        auto *forwardStage = CC_NEW(ForwardStage);
-        forwardStage->initialize(ForwardStage::getInitializeInfo());
-        _stages.emplace_back(forwardStage);
-    }
-
-    return true;
-}
-
-void ForwardFlow::activate(RenderPipeline *pipeline) {
-    RenderFlow::activate(pipeline);
-}
-
-void ForwardFlow::render(scene::Camera *camera) {
-    RenderFlow::render(camera);
-}
-
-void ForwardFlow::destroy() {
-    RenderFlow::destroy();
-}
 
 } // namespace pipeline
 } // namespace cc

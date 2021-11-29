@@ -160,15 +160,6 @@ void ForwardStage::render(scene::Camera *camera) {
         }
         _clearColors[0].w = camera->clearColor.w;
         // color
-        framegraph::Texture::Descriptor colorTexInfo;
-        colorTexInfo.format = sharedData->isHDR ? gfx::Format::RGBA16F : gfx::Format::RGBA8;
-        colorTexInfo.usage  = gfx::TextureUsageBit::COLOR_ATTACHMENT;
-        colorTexInfo.width  = static_cast<uint>(pipeline->getWidth() * shadingScale);
-        colorTexInfo.height = static_cast<uint>(pipeline->getHeight() * shadingScale);
-        if (shadingScale != 1.F) {
-            colorTexInfo.usage |= gfx::TextureUsageBit::TRANSFER_SRC;
-        }
-        data.outputTex      = builder.create(RenderPipeline::fgStrHandleOutColorTexture, colorTexInfo);
         framegraph::RenderTargetAttachment::Descriptor colorAttachmentInfo;
         colorAttachmentInfo.usage      = framegraph::RenderTargetAttachment::Usage::COLOR;
         colorAttachmentInfo.clearColor = _clearColors[0];
@@ -182,6 +173,23 @@ void ForwardStage::render(scene::Camera *camera) {
             }
         }
         colorAttachmentInfo.endAccesses   = {gfx::AccessType::COLOR_ATTACHMENT_WRITE};
+
+        data.outputTex = framegraph::TextureHandle(builder.readFromBlackboard(RenderPipeline::fgStrHandleOutColorTexture));
+
+		if (!data.outputTex.isValid()) {
+            framegraph::Texture::Descriptor colorTexInfo;
+			colorTexInfo.format = sharedData->isHDR ? gfx::Format::RGBA16F : gfx::Format::RGBA8;
+			colorTexInfo.usage  = gfx::TextureUsageBit::COLOR_ATTACHMENT;
+			colorTexInfo.width  = static_cast<uint>(pipeline->getWidth() * shadingScale);
+			colorTexInfo.height = static_cast<uint>(pipeline->getHeight() * shadingScale);
+			if (shadingScale != 1.F) {
+				colorTexInfo.usage |= gfx::TextureUsageBit::TRANSFER_SRC;
+			}
+			data.outputTex      = builder.create(RenderPipeline::fgStrHandleOutColorTexture, colorTexInfo);
+        } else {
+            colorAttachmentInfo.loadOp = gfx::LoadOp::LOAD;
+        }
+
         data.outputTex                    = builder.write(data.outputTex, colorAttachmentInfo);
         builder.writeToBlackboard(RenderPipeline::fgStrHandleOutColorTexture, data.outputTex);
         // depth
