@@ -53,10 +53,10 @@ bool ForwardFlow::initialize(const RenderFlowInfo &info) {
             arStage->initialize(ARStage::getInitializeInfo());
             _stages.emplace_back(arStage);
         #endif
-
+//*
         auto *forwardStage = CC_NEW(ForwardStage);
         forwardStage->initialize(ForwardStage::getInitializeInfo());
-        _stages.emplace_back(forwardStage);
+        _stages.emplace_back(forwardStage);//*/
     }
 
     return true;

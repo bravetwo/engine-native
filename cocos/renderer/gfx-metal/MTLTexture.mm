@@ -58,9 +58,12 @@ void CCMTLTexture::doInit(const TextureInfo &info) {
 
     if(_info.externalRes) {
         auto pixelBuffer = static_cast<CVPixelBufferRef>(_info.externalRes);
-        size_t width = CVPixelBufferGetWidth(pixelBuffer);
-        size_t height = CVPixelBufferGetHeight(pixelBuffer);
-
+        //size_t width = CVPixelBufferGetWidth(pixelBuffer);
+        //size_t height = CVPixelBufferGetHeight(pixelBuffer);
+        size_t width = CVPixelBufferGetWidthOfPlane(pixelBuffer, _info.layerCount);
+        size_t height = CVPixelBufferGetHeightOfPlane(pixelBuffer, _info.layerCount);
+        _info.width = static_cast<unsigned int>(width);
+        _info.height = static_cast<unsigned int>(height);
         CVReturn cvret;
         CVMetalTextureCacheRef CVMTLTextureCache;
         cvret = CVMetalTextureCacheCreate(
@@ -87,8 +90,8 @@ void CCMTLTexture::doInit(const TextureInfo &info) {
         CCASSERT(cvret == kCVReturnSuccess, @"Failed to create CoreVideo Metal texture from image");
 
         _mtlTexture = CVMetalTextureGetTexture(CVMTLTexture);
-        CFRelease(CVMTLTexture);
-        CFRelease(CVMTLTextureCache);
+        //CFRelease(CVMTLTexture);
+        //CFRelease(CVMTLTextureCache);
 
         CCASSERT(_mtlTexture, @"Failed to create Metal texture CoreVideo Metal Texture");
         return;

@@ -1841,7 +1841,7 @@ if(USE_AR_MODULE)
     )
     elseif(IOS)
     cocos_source_files(
-        cocos/ar/ios/ARKitAPIImpl.cpp
+        cocos/ar/ios/ARKitAPIImpl.mm
         cocos/ar/ios/ARKitAPIImpl.h
     )
     endif()

@@ -4,11 +4,19 @@
 #import <CoreVideo/CVPixelBuffer.h>
 #import <dispatch/dispatch.h>
 
+static const float kCameraTexCoordData[8] = {
+    0.0, 0.0,  0.0, 1.0,
+    1.0, 0.0,  1.0, 1.0,
+};
+
 @interface ARKitAPI : NSObject<ARSessionDelegate> {
     ARSession* mARSession;
     ARFrame* mFrame;
     CVPixelBufferRef mPixelBuffer;
     dispatch_semaphore_t mSemaphore;
+    float* mCameraProjMat;
+    float* mCameraTexCoords;
+    CGSize mViewportSize;
 }
 
 - (id)init;
@@ -18,7 +26,8 @@
 - (void)updateTexture : (ARFrame*) frame;
 - (bool)checkStart;
 - (CVPixelBufferRef)getCameraTextureRef;
-
+- (float*)getCameraTexCoords;
+- (void)updateCameraTexCoords;
 @end
 
 @implementation ARKitAPI
@@ -29,22 +38,40 @@
     mARSession.delegate = self;
     
     //mSemaphore = dispatch_semaphore_create(1);
+    mCameraProjMat = (float *)malloc(sizeof(float) * 16);
+    mCameraTexCoords = (float *)malloc(sizeof(float) * 8);
+    
     
     return self;
 }
 //*
 - (void) session : (ARSession*) session  didUpdateFrame : (ARFrame*) frame{
     mFrame = frame;
+    
     CVPixelBufferRef capturedBuffer = frame.capturedImage;
+    
+    CGFloat width = CVPixelBufferGetWidth(capturedBuffer);
+    CGFloat height = CVPixelBufferGetHeight(capturedBuffer);
+    mViewportSize = CGSizeMake(width, height);
+    
     if(!mPixelBuffer) {
+        
+        NSDictionary* cvBufferProperties = @{
+            (__bridge NSString*)kCVPixelBufferOpenGLCompatibilityKey : @YES,
+            (__bridge NSString*)kCVPixelBufferMetalCompatibilityKey : @YES,
+        };
         CVPixelBufferCreate(nil,
-                            CVPixelBufferGetWidth(capturedBuffer),
-                            CVPixelBufferGetHeight(capturedBuffer),
+                            width,
+                            height,
                             //kCVPixelFormatType_422YpCbCr16,
                             CVPixelBufferGetPixelFormatType(capturedBuffer),
-                            CVBufferGetAttachments(capturedBuffer, kCVAttachmentMode_ShouldPropagate),
+                            //CVBufferGetAttachments(capturedBuffer, kCVAttachmentMode_ShouldPropagate),
+                            (__bridge CFDictionaryRef)cvBufferProperties,
                             &mPixelBuffer);
     }
+    
+    [self updateCameraTexCoords];
+    
     //dispatch_semaphore_wait(mSemaphore, DISPATCH_TIME_FOREVER);
     CVPixelBufferLockBaseAddress(mPixelBuffer, 0);
     CVPixelBufferLockBaseAddress(capturedBuffer, kCVPixelBufferLock_ReadOnly);
@@ -58,6 +85,15 @@
     }
     CVPixelBufferUnlockBaseAddress(capturedBuffer, kCVPixelBufferLock_ReadOnly);
     CVPixelBufferUnlockBaseAddress(mPixelBuffer, 0);
+    
+    matrix_float4x4 projMat = [mFrame.camera projectionMatrix];
+    for(int i = 0; i < 4; ++i) {
+        vector_float4 col = projMat.columns[i];
+        mCameraProjMat[i * 4] = col.x;
+        mCameraProjMat[i * 4 + 1] = col.y;
+        mCameraProjMat[i * 4 + 2] = col.z;
+        mCameraProjMat[i * 4 + 3] = col.w;
+    }
 }
 //*/
 - (void) startSession {
@@ -114,6 +150,22 @@
     //dispatch_semaphore_signal(mSemaphore);
 }
 
+- (float*) getCameraTexCoords {
+    
+    return mCameraTexCoords;
+}
+
+- (void) updateCameraTexCoords {
+    CGAffineTransform displayToCameraTransform = CGAffineTransformInvert([mFrame displayTransformForOrientation : UIInterfaceOrientationLandscapeRight viewportSize : mViewportSize]);
+
+    for (NSInteger index = 0; index < 4; index++) {
+        NSInteger textureCoordIndex = index * 2;
+        CGPoint textureCoord = CGPointMake(kCameraTexCoordData[textureCoordIndex], kCameraTexCoordData[textureCoordIndex + 1]);
+        CGPoint transformedCoord = CGPointApplyAffineTransform(textureCoord, displayToCameraTransform);
+        mCameraTexCoords[textureCoordIndex] = transformedCoord.x;
+        mCameraTexCoords[textureCoordIndex + 1] = transformedCoord.y;
+    }
+}
 @end
 
 #define TransferImpl ARKitAPI *impl = (__bridge ARKitAPI *)_impl;
@@ -156,7 +208,10 @@ float* ARKitAPIImpl::getCameraViewMatrix() {}
 
 float* ARKitAPIImpl::getCameraProjectionMatrix() {}
 
-float* ARKitAPIImpl::getCameraTexCoords() {}
+float* ARKitAPIImpl::getCameraTexCoords() {
+    TransferImpl;
+    return (__bridge float*)[impl getCameraTexCoords];
+}
 
 void* ARKitAPIImpl::getCameraTextureRef() {
     TransferImpl;

@@ -126,11 +126,11 @@ void ARStage::render(scene::Camera *camera) {
 #if USE_BLIT
         data.outputTex = builder.write(data.outputTex);
 #else
-        if (hasFlag(static_cast<gfx::ClearFlags>(camera->clearFlag), gfx::ClearFlagBit::COLOR)) {
+        //if (hasFlag(static_cast<gfx::ClearFlags>(camera->clearFlag), gfx::ClearFlagBit::COLOR)) {
             _clearColors[0].x = camera->clearColor.x;
             _clearColors[0].y = camera->clearColor.y;
             _clearColors[0].z = camera->clearColor.z;
-        }
+        //}
         _clearColors[0].w = camera->clearColor.w;
 
         framegraph::RenderTargetAttachment::Descriptor colorAttachmentInfo;
@@ -202,6 +202,7 @@ void ARStage::render(scene::Camera *camera) {
 
     // add pass
     _pipeline->getFrameGraph().addPass<RenderData>(static_cast<uint>(CommonInsertPoint::DIP_AR_BACKGROUND), ForwardPipeline::fgStrHandleForwardPass, arSetup, arExec);
+    //_pipeline->getFrameGraph().presentFromBlackboard(RenderPipeline::fgStrHandleOutColorTexture, camera->window->frameBuffer->getColorTextures()[0], true);
 }
 
 } // namespace pipeline
