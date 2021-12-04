@@ -60,78 +60,33 @@ void ARBackground::activate(RenderPipeline *pipeline, gfx::Device* dev) {
     #pragma region _shader
 
     ShaderSources<StandardShaderSource> sources;
-    /* test
+    
     sources.glsl4 = {
         R"(
             precision highp float;
             layout(location = 0) in vec2 a_position;
             layout(location = 1) in vec2 a_texCoord;
-            layout(set = 1, binding = 0) uniform Mats {
-                mat4 u_MVP;
-                mat4 u_CoordMatrix;
-            };
 
             layout(location = 0) out vec2 v_texCoord;
             void main() {
-                //v_texCoord = (u_CoordMatrix * vec4(a_texCoord, 0, 1)).xy;
-                //gl_Position = u_MVP * vec4(a_position, 0, 1);
-                //gl_Position = vec4(1.0 - 2.0 * a_position, 0, 1);
                 gl_Position = vec4(a_position, 0, 1);
+                //v_texCoord = vec2(a_texCoord.x, 1 - a_texCoord.y);
                 v_texCoord = a_texCoord;
             }
         )",
         R"(
             precision highp float;
             layout(location = 0) in vec2 v_texCoord;
-            layout(set = 1, binding = 1) uniform sampler2D u_texture;
+            layout(set = 1, binding = 0) uniform sampler2D u_YTex;
+            layout(set = 1, binding = 1) uniform sampler2D u_CbCrTex;
             layout(set = 1, binding = 2) uniform Transfer_Mat {
                 mat4 u_YCbCrToRGB;
             };
-        
+
             layout(location = 0) out vec4 o_color;
             void main() {
-                //vec4 ycbcr = vec4(texture(u_texture[0], v_texCoord).r, texture(u_texture[1], v_texCoord).rg, 1);
-                vec4 ycbcr = vec4(texture(u_texture, v_texCoord).r, 0, 0, 1);
+                vec4 ycbcr = vec4(texture(u_YTex, v_texCoord).r, texture(u_CbCrTex, v_texCoord).rg, 1);
                 o_color = u_YCbCrToRGB * ycbcr;
-                //o_color = texture(u_texture, v_texCoord);
-                //o_color = vec4(0, 1, 1, 1);
-            }
-        )",
-    };
-    //*/
-    //*
-    sources.glsl4 = {
-        R"(
-            precision highp float;
-            layout(location = 0) in vec2 a_position;
-            layout(location = 1) in vec2 a_texCoord;
-            layout(set = 1, binding = 0) uniform Mats {
-                mat4 u_MVP;
-                mat4 u_CoordMatrix;
-            };
-
-            layout(location = 0) out vec2 v_texCoord;
-            void main() {
-                gl_Position = vec4(a_position, 0, 1);
-                //v_texCoord = a_texCoord;
-                v_texCoord = vec2(a_texCoord.x, 1 - a_texCoord.y);
-            }
-        )",
-        R"(
-            precision highp float;
-            layout(location = 0) in vec2 v_texCoord;
-            layout(set = 1, binding = 1) uniform sampler2D u_texture[2];
-            layout(set = 1, binding = 2) uniform Transfer_Mat {
-                mat4 u_YCbCrToRGB;
-            };
-
-            layout(location = 0) out vec4 o_color;
-            void main() {
-                vec4 ycbcr = vec4(texture(u_texture[0], v_texCoord).r, texture(u_texture[1], v_texCoord).rg, 1);
-                //o_color = u_YCbCrToRGB * ycbcr;
-                //o_color = vec4(texture(u_texture[1], v_texCoord).g, 0, 0, 1);
-                //o_color = vec4(texture(u_texture[0], v_texCoord).r, 0, 0, 1);
-                o_color = vec4(texture(u_texture[0], v_texCoord).r - texture(u_texture[1], v_texCoord).r, 0, 0, 1);
             }
         )",
     };
@@ -215,10 +170,8 @@ void ARBackground::activate(RenderPipeline *pipeline, gfx::Device* dev) {
     gfx::UniformBlockList blockList = {{materialSet, 0, "Mats", {{"u_MVP", gfx::Type::MAT4, 1}, {"u_CoordMatrix", gfx::Type::MAT4, 1}}, 2}};
     gfx::UniformSamplerTextureList samplerTextures = {{materialSet, 1, "u_texture", gfx::Type::SAMPLER2D, 1}};
 #elif CC_PLATFORM == CC_PLATFORM_MAC_IOS
-    gfx::UniformBlockList blockList = {{materialSet, 0, "Mats", {{"u_MVP", gfx::Type::MAT4, 1}, {"u_CoordMatrix", gfx::Type::MAT4, 1}}, 2}, {materialSet, 2, "Transfer_Mat", {{"u_YCbCrToRGB", gfx::Type::MAT4, 1}}, 1}};
-    gfx::UniformSamplerTextureList samplerTextures = {{materialSet, 1, "u_texture", gfx::Type::SAMPLER2D, 2}};
-    // test
-    //gfx::UniformSamplerTextureList samplerTextures = {{materialSet, 1, "u_texture", gfx::Type::SAMPLER2D, 1}};
+    gfx::UniformBlockList blockList = {{materialSet, 2, "Transfer_Mat", {{"u_YCbCrToRGB", gfx::Type::MAT4, 1}}, 1}};
+    gfx::UniformSamplerTextureList samplerTextures = {{materialSet, 0, "u_YTex", gfx::Type::SAMPLER2D, 1}, {materialSet, 1, "u_CbCrTex", gfx::Type::SAMPLER2D, 1}};
 #endif
     gfx::ShaderInfo shaderInfo;
     shaderInfo.name            = "ARBackGround";
@@ -281,6 +234,21 @@ void ARBackground::activate(RenderPipeline *pipeline, gfx::Device* dev) {
 
     #pragma endregion
 
+    gfx::DescriptorSetLayoutInfo dslInfo;
+#if CC_PLATFORM == CC_PLATFORM_ANDROID
+    dslInfo.bindings.push_back({0, gfx::DescriptorType::UNIFORM_BUFFER, 1, gfx::ShaderStageFlagBit::VERTEX});
+    dslInfo.bindings.push_back({1, gfx::DescriptorType::SAMPLER_TEXTURE, 1, gfx::ShaderStageFlagBit::FRAGMENT});
+#elif CC_PLATFORM == CC_PLATFORM_MAC_IOS
+    dslInfo.bindings.push_back({0, gfx::DescriptorType::SAMPLER_TEXTURE, 1, gfx::ShaderStageFlagBit::FRAGMENT});
+    dslInfo.bindings.push_back({1, gfx::DescriptorType::SAMPLER_TEXTURE, 1, gfx::ShaderStageFlagBit::FRAGMENT});
+    dslInfo.bindings.push_back({2, gfx::DescriptorType::UNIFORM_BUFFER, 1, gfx::ShaderStageFlagBit::FRAGMENT});
+#endif
+    _descriptorSetLayout = _device->createDescriptorSetLayout(dslInfo);
+    //*
+    _descriptorSet = _device->createDescriptorSet({_descriptorSetLayout});
+    
+    
+#if CC_PLATFORM == CC_PLATFORM_ANDROID
     gfx::BufferInfo uniformBufferInfo = {
         gfx::BufferUsage::UNIFORM,
         gfx::MemoryUsage::DEVICE,
@@ -288,76 +256,32 @@ void ARBackground::activate(RenderPipeline *pipeline, gfx::Device* dev) {
     };
     _uniformBuffer = _device->createBuffer(uniformBufferInfo);
     float mats[] = {
-        1, 0, 0, 0, 
-        0, 1, 0, 0, 
-        0, 0, -1, 0, 
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, -1, 0,
         0, 0, -1, 1,
-        1, 0, 0, 0, 
-        0, 1, 0, 0, 
-        0, 0, 1, 0, 
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
         0, 0, 0, 1
     };
     _uniformBuffer->update(mats, 2 * sizeof(Mat4));
-
-    gfx::DescriptorSetLayoutInfo dslInfo;
-    dslInfo.bindings.push_back({0, gfx::DescriptorType::UNIFORM_BUFFER, 1, gfx::ShaderStageFlagBit::VERTEX});
-#if CC_PLATFORM == CC_PLATFORM_ANDROID
-    dslInfo.bindings.push_back({1, gfx::DescriptorType::SAMPLER_TEXTURE, 1, gfx::ShaderStageFlagBit::FRAGMENT});
-#elif CC_PLATFORM == CC_PLATFORM_MAC_IOS
-    dslInfo.bindings.push_back({1, gfx::DescriptorType::SAMPLER_TEXTURE, 2, gfx::ShaderStageFlagBit::FRAGMENT});
-    // test
-    //dslInfo.bindings.push_back({1, gfx::DescriptorType::SAMPLER_TEXTURE, 1, gfx::ShaderStageFlagBit::FRAGMENT});
-    dslInfo.bindings.push_back({2, gfx::DescriptorType::UNIFORM_BUFFER, 1, gfx::ShaderStageFlagBit::FRAGMENT});
-#endif
-    _descriptorSetLayout = _device->createDescriptorSetLayout(dslInfo);
-    //*
-    _descriptorSet = _device->createDescriptorSet({_descriptorSetLayout});
     //_descriptorSet->bindBuffer(0, _uniformBuffer);
-
-#if CC_PLATFORM == CC_PLATFORM_MAC_IOS
+#elif CC_PLATFORM == CC_PLATFORM_MAC_IOS
     gfx::BufferInfo transferUniformBufferInfo = {
         gfx::BufferUsage::UNIFORM,
         gfx::MemoryUsage::DEVICE,
         sizeof(Mat4),
     };
-    //*
     float transferMats[] = {
         1.0000f, 1.0000f, 1.0000f, 0.0000f, 
         0.0000f, -.3441f, 1.7720f, 0.0000f, 
         1.4020f, -.7141f, 0.0000f, 0.0000f, 
         -.7010f, 0.5291f, -.8860f, 1.0000f
     };
-    //*/
-    /*
-    float transferMats[] = {
-        1.0000f, 0.0000f, 1.4020f, -.7010f,
-        1.0000f, -.3441f, -.7141f, 0.5291f,
-        1.0000f, 1.7720f, 0.0000f, -.8860f,
-        0.0000f, 0.0000f, 0.0000f, 1.0000f
-    };
-    //*/
     _ycbcrTransferBuffer = _device->createBuffer(transferUniformBufferInfo);
     _ycbcrTransferBuffer->update(transferMats, sizeof(Mat4));
     //_descriptorSet->bindBuffer(2, _ycbcrTransferBuffer);
-
-    _globalBarriers.push_back(_device->getGlobalBarrier({
-        {
-            gfx::AccessType::TRANSFER_WRITE,
-        },
-        {
-            gfx::AccessType::VERTEX_SHADER_READ_UNIFORM_BUFFER,
-            //gfx::AccessType::VERTEX_BUFFER,
-            //gfx::AccessType::INDEX_BUFFER,
-        },
-    }));
-    _textureBarriers.push_back(_device->getTextureBarrier({
-        {
-            gfx::AccessType::TRANSFER_WRITE,
-        },
-        {
-            gfx::AccessType::FRAGMENT_SHADER_READ_TEXTURE,
-        }
-    }));
     
     _textures.resize(2);
 #endif
@@ -376,23 +300,6 @@ void ARBackground::activate(RenderPipeline *pipeline, gfx::Device* dev) {
     glGenTextures(1, &_glTex);
     deviceAgent->setMultithreaded(true);
 #endif
-    
-    /*/ test
-    gfx::TextureInfo yTexInfo;
-    yTexInfo.usage  = gfx::TextureUsage::SAMPLED | gfx::TextureUsage::TRANSFER_SRC;
-    yTexInfo.format = gfx::Format::RGBA16F;
-    //yTexInfo.format = gfx::Format::R8;
-    yTexInfo.width = 300;
-    yTexInfo.height = 400;
-    gfx::SamplerInfo samplerInfo;
-    auto *           sampler = _device->getSampler(samplerInfo);
-    gfx::Texture * yTex = _device->createTexture(yTexInfo);
-    _descriptorSet->bindBuffer(0, _uniformBuffer);
-    _descriptorSet->bindBuffer(2, _ycbcrTransferBuffer);
-    _descriptorSet->bindSampler(1, sampler);
-    _descriptorSet->bindTexture(1, yTex);
-    _descriptorSet->update();
-    //*/
 }
 
 void ARBackground::render(scene::Camera *camera, gfx::RenderPass *renderPass, gfx::CommandBuffer *cmdBuffer) {
@@ -450,23 +357,30 @@ void ARBackground::render(scene::Camera *camera, gfx::RenderPass *renderPass, gf
     cbcrTexInfo.layerCount = 1;
     gfx::Texture * yTex = _device->createTexture(yTexInfo);
     gfx::Texture * cbcrTex = _device->createTexture(cbcrTexInfo);
-    _descriptorSet->bindBuffer(0, _uniformBuffer);
-    _descriptorSet->bindBuffer(2, _ycbcrTransferBuffer);
+    
+    _descriptorSet->bindSampler(0, sampler);
+    _descriptorSet->bindTexture(0, yTex);
     _descriptorSet->bindSampler(1, sampler);
-    _descriptorSet->bindTexture(1, yTex);
-    _descriptorSet->bindSampler(1, sampler, 1);
-    _descriptorSet->bindTexture(1, cbcrTex, 1);
+    _descriptorSet->bindTexture(1, cbcrTex);
+    _descriptorSet->bindBuffer(2, _ycbcrTransferBuffer);
     _descriptorSet->update();
 #endif
     
-//#if CC_PLATFORM == CC_PLATFORM_ANDROID
+//*
     auto *const data = armodule->getCameraTexCoords();
+#if CC_PLATFORM == CC_PLATFORM_ANDROID
     float vertices[] = {-1, -1, data[0], data[1],
                         -1, 1, data[2], data[3],
                         1, -1, data[4], data[5],
                         1, 1, data[6], data[7]};
+#elif CC_PLATFORM == CC_PLATFORM_MAC_IOS
+    float vertices[] = {-1, -1, data[2], data[3],
+                        -1, 1, data[0], data[1],
+                        1, -1, data[6], data[7],
+                        1, 1, data[4], data[5]};
+#endif
     _vertexBuffer->update(vertices, sizeof(vertices));
-//#endif
+//*/
     //_uniformBuffer->update(camera->matViewProj.m, sizeof(Mat4));
     
     gfx::PipelineStateInfo pipelineInfo;

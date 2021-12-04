@@ -202,7 +202,6 @@ void ARStage::render(scene::Camera *camera) {
 
     // add pass
     _pipeline->getFrameGraph().addPass<RenderData>(static_cast<uint>(CommonInsertPoint::DIP_AR_BACKGROUND), ForwardPipeline::fgStrHandleForwardPass, arSetup, arExec);
-    //_pipeline->getFrameGraph().presentFromBlackboard(RenderPipeline::fgStrHandleOutColorTexture, camera->window->frameBuffer->getColorTextures()[0], true);
 }
 
 } // namespace pipeline

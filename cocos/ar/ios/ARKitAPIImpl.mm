@@ -13,18 +13,21 @@ static const float kCameraTexCoordData[8] = {
     ARSession* mARSession;
     ARFrame* mFrame;
     CVPixelBufferRef mPixelBuffer;
-    dispatch_semaphore_t mSemaphore;
+    simd_float4x4 mCameraTransform;
     float* mCameraProjMat;
     float* mCameraTexCoords;
     CGSize mViewportSize;
+    UIInterfaceOrientation mUIOrientation;
+    
+    NSMutableArray* mAddedPlanes;
 }
 
 - (id)init;
-//- (void)session : (ARSession*) session didUpdateFrame : (ARFrame*) frame;
+- (void)session : (ARSession*) session didUpdateFrame : (ARFrame*) frame;
 - (void)startSession;
 - (void)updateSession;
-- (void)updateTexture : (ARFrame*) frame;
 - (bool)checkStart;
+- (float*)getCameraPose;
 - (CVPixelBufferRef)getCameraTextureRef;
 - (float*)getCameraTexCoords;
 - (void)updateCameraTexCoords;
@@ -40,51 +43,25 @@ static const float kCameraTexCoordData[8] = {
     //mSemaphore = dispatch_semaphore_create(1);
     mCameraProjMat = (float *)malloc(sizeof(float) * 16);
     mCameraTexCoords = (float *)malloc(sizeof(float) * 8);
+    // the device upright and the Home button on the Right
+    mUIOrientation = UIInterfaceOrientationLandscapeRight;
     
+    mAddedPlanes = [NSMutableArray new];
     
     return self;
 }
-//*
-- (void) session : (ARSession*) session  didUpdateFrame : (ARFrame*) frame{
+
+- (void) session : (ARSession*) session didUpdateFrame : (ARFrame*)frame {
     mFrame = frame;
     
-    CVPixelBufferRef capturedBuffer = frame.capturedImage;
-    
-    CGFloat width = CVPixelBufferGetWidth(capturedBuffer);
-    CGFloat height = CVPixelBufferGetHeight(capturedBuffer);
-    mViewportSize = CGSizeMake(width, height);
-    
-    if(!mPixelBuffer) {
-        
-        NSDictionary* cvBufferProperties = @{
-            (__bridge NSString*)kCVPixelBufferOpenGLCompatibilityKey : @YES,
-            (__bridge NSString*)kCVPixelBufferMetalCompatibilityKey : @YES,
-        };
-        CVPixelBufferCreate(nil,
-                            width,
-                            height,
-                            //kCVPixelFormatType_422YpCbCr16,
-                            CVPixelBufferGetPixelFormatType(capturedBuffer),
-                            //CVBufferGetAttachments(capturedBuffer, kCVAttachmentMode_ShouldPropagate),
-                            (__bridge CFDictionaryRef)cvBufferProperties,
-                            &mPixelBuffer);
-    }
+    //mViewportSize = CGSizeMake(width, height);
+    mViewportSize = CGSizeMake(2532, 1170);
     
     [self updateCameraTexCoords];
     
-    //dispatch_semaphore_wait(mSemaphore, DISPATCH_TIME_FOREVER);
-    CVPixelBufferLockBaseAddress(mPixelBuffer, 0);
-    CVPixelBufferLockBaseAddress(capturedBuffer, kCVPixelBufferLock_ReadOnly);
-    for(int i = 0; i < CVPixelBufferGetPlaneCount(capturedBuffer); ++i) {
-        void* dest = CVPixelBufferGetBaseAddressOfPlane(mPixelBuffer, i);
-        void* source = CVPixelBufferGetBaseAddressOfPlane(capturedBuffer, i);
-        size_t height = CVPixelBufferGetHeightOfPlane(capturedBuffer, i);
-        size_t bytesPerRowSrc = CVPixelBufferGetBytesPerRowOfPlane(capturedBuffer, i);
-        //size_t bytesPerRowDst = CVPixelBufferGetBytesPerRowOfPlane(mPixelBuffer, i);
-        memcpy(dest, source, height * bytesPerRowSrc);
-    }
-    CVPixelBufferUnlockBaseAddress(capturedBuffer, kCVPixelBufferLock_ReadOnly);
-    CVPixelBufferUnlockBaseAddress(mPixelBuffer, 0);
+    [self updateCameraTex];
+
+    mCameraTransform = [frame.camera transform];
     
     matrix_float4x4 projMat = [mFrame.camera projectionMatrix];
     for(int i = 0; i < 4; ++i) {
@@ -95,9 +72,25 @@ static const float kCameraTexCoordData[8] = {
         mCameraProjMat[i * 4 + 3] = col.w;
     }
 }
-//*/
+
+- (void) session : (ARSession*) session didAddAnchors : (NSArray<__kindof ARAnchor *> *)anchors {
+    for (ARAnchor* anchor in anchors) {
+        if([anchor isKindOfClass:[ARPlaneAnchor class]]) {
+            ARPlaneAnchor* plane = (ARPlaneAnchor*)anchor;
+            [mAddedPlanes addObject : plane.identifier];
+        }
+    }
+}
+
+- (float *) getPlanesInfo {
+    
+}
+
 - (void) startSession {
     ARWorldTrackingConfiguration* config = [ARWorldTrackingConfiguration new];
+    
+    config.planeDetection = ARPlaneDetectionHorizontal;
+    
     [mARSession runWithConfiguration : config];
 }
 
@@ -109,18 +102,57 @@ static const float kCameraTexCoordData[8] = {
     //*/
 }
 
-- (void) updateTexture : (ARFrame*) frame {
-    CVPixelBufferRef capturedBuffer = frame.capturedImage;
+- (bool) checkStart {
+    return mARSession && mFrame;
+}
+
+- (CVPixelBufferRef) getCameraTextureRef {
+    return mPixelBuffer;
+}
+
+- (float*) getCameraPose {
+    float * pose = (float *)malloc(sizeof(float) * 7);
+    
+    vector_float4 c0 = mCameraTransform.columns[0];
+    vector_float4 c1 = mCameraTransform.columns[1];
+    vector_float4 c2 = mCameraTransform.columns[2];
+    vector_float4 c3 = mCameraTransform.columns[3];
+    float qw = sqrt(1 + c0.x + c1.y + c2.z) * 0.5f;
+    float qw_4 = 4.0f * qw;
+    
+    pose[0] = c3.x;
+    pose[1] = c3.y;
+    pose[2] = c3.z;
+    pose[3] = -(c2.y - c1.z) / qw_4;
+    pose[4] = -(c0.z - c2.x) / qw_4;
+    pose[5] = -(c1.x - c0.y) / qw_4;
+    pose[6] = qw;
+    
+    return pose;
+}
+
+- (float*) getCameraTexCoords {
+    return mCameraTexCoords;
+}
+
+- (void) updateCameraTex {
+    CVPixelBufferRef capturedBuffer = mFrame.capturedImage;
+    
     if(!mPixelBuffer) {
-        CVPixelBufferCreate(nil,
-                            CVPixelBufferGetWidth(capturedBuffer),
-                            CVPixelBufferGetHeight(capturedBuffer),
-                            //kCVPixelFormatType_422YpCbCr16,
+        CGFloat width = CVPixelBufferGetWidth(capturedBuffer);
+        CGFloat height = CVPixelBufferGetHeight(capturedBuffer);
+        NSDictionary* cvBufferProperties = @{
+            (__bridge NSString*)kCVPixelBufferOpenGLCompatibilityKey : @YES,
+            (__bridge NSString*)kCVPixelBufferMetalCompatibilityKey : @YES,
+        };
+        CVPixelBufferCreate(kCFAllocatorDefault,
+                            width,
+                            height,
                             CVPixelBufferGetPixelFormatType(capturedBuffer),
-                            CVBufferGetAttachments(capturedBuffer, kCVAttachmentMode_ShouldPropagate),
+                            (__bridge CFDictionaryRef)cvBufferProperties,
                             &mPixelBuffer);
     }
-    dispatch_semaphore_wait(mSemaphore, DISPATCH_TIME_FOREVER);
+
     CVPixelBufferLockBaseAddress(mPixelBuffer, 0);
     CVPixelBufferLockBaseAddress(capturedBuffer, kCVPixelBufferLock_ReadOnly);
     for(int i = 0; i < CVPixelBufferGetPlaneCount(capturedBuffer); ++i) {
@@ -128,35 +160,14 @@ static const float kCameraTexCoordData[8] = {
         void* source = CVPixelBufferGetBaseAddressOfPlane(capturedBuffer, i);
         size_t height = CVPixelBufferGetHeightOfPlane(capturedBuffer, i);
         size_t bytesPerRowSrc = CVPixelBufferGetBytesPerRowOfPlane(capturedBuffer, i);
-        //size_t bytesPerRowDst = CVPixelBufferGetBytesPerRowOfPlane(mPixelBuffer, i);
         memcpy(dest, source, height * bytesPerRowSrc);
     }
     CVPixelBufferUnlockBaseAddress(capturedBuffer, kCVPixelBufferLock_ReadOnly);
     CVPixelBufferUnlockBaseAddress(mPixelBuffer, 0);
 }
 
-- (bool) checkStart {
-    return mARSession && mFrame;
-}
-
-- (CVPixelBufferRef) getCameraTextureRef {
-    //dispatch_semaphore_wait(mSemaphore, DISPATCH_TIME_FOREVER);
-    //mPixelBuffer = mFrame.capturedImage;
-    //mSemaphore = dispatch_semaphore_create(1);
-    return mPixelBuffer;
-}
-
-- (void) syncTextureRef {
-    //dispatch_semaphore_signal(mSemaphore);
-}
-
-- (float*) getCameraTexCoords {
-    
-    return mCameraTexCoords;
-}
-
 - (void) updateCameraTexCoords {
-    CGAffineTransform displayToCameraTransform = CGAffineTransformInvert([mFrame displayTransformForOrientation : UIInterfaceOrientationLandscapeRight viewportSize : mViewportSize]);
+    CGAffineTransform displayToCameraTransform = CGAffineTransformInvert([mFrame displayTransformForOrientation : mUIOrientation viewportSize : mViewportSize]);
 
     for (NSInteger index = 0; index < 4; index++) {
         NSInteger textureCoordIndex = index * 2;
@@ -202,7 +213,10 @@ bool ARKitAPIImpl::checkStart() {
 
 void ARKitAPIImpl::setCameraTextureName(int id) {}
 
-float* ARKitAPIImpl::getCameraPose() {}
+float* ARKitAPIImpl::getCameraPose() {
+    TransferImpl;
+    return (__bridge float*)[impl getCameraPose];
+}
 
 float* ARKitAPIImpl::getCameraViewMatrix() {}
 
