@@ -77,7 +77,7 @@ void ARModule::onPause() {
 
 void ARModule::update() {
     // IOS act
-    _impl->update();
+    //_impl->update();
 }
 
 bool ARModule::checkStart() {
@@ -110,8 +110,26 @@ void* ARModule::getCameraTextureRef() const {
     return _impl->getCameraTextureRef();
 }
 
-void ARModule::syncTextureRef() const {
-    _impl->syncTextureRef();
+int ARModule::getAddedPlanesCount() const {
+    return _impl->getAddedPlanesCount();
+}
+int ARModule::getRemovedPlanesCount() const {
+    return _impl->getRemovedPlanesCount();
+}
+int ARModule::getUpdatedPlanesCount() const {
+    return _impl->getUpdatedPlanesCount();
+}
+void ARModule::updatePlanesInfo() const {
+    _impl->updatePlanesInfo();
+}
+float* ARModule::getAddedPlanesInfo() const {
+    return _impl->getAddedPlanesInfo();
+}
+int* ARModule::getRemovedPlanesInfo() const {
+    return _impl->getRemovedPlanesInfo();
+}
+float* ARModule::getUpdatedPlanesInfo() const {
+    return _impl->getUpdatedPlanesInfo();
 }
 
 } // namespace ar

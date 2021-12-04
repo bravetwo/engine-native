@@ -298,5 +298,158 @@ float* ARCoreAPIImpl::getCameraTexCoords() {
     return _cameraTexCoords->data();
 }
 
+void* ARCoreAPIImpl::getCameraTextureRef() {
+    return nullptr;
+}
+
+//void ARCoreAPIImpl::setPlaneFeatureEnable(bool isOn) {}
+int ARCoreAPIImpl::getAddedPlanesCount() {
+    if(_impl != nullptr) {
+        JniMethodInfo methodInfo;
+        if (JniHelper::getStaticMethodInfo(methodInfo,
+                                            JCLS_ARAPI,
+                                            "getAddedPlanesCount",
+                                            "(" JARG_ARAPI ")I")) {
+            auto result = static_cast<int>(methodInfo.env->CallStaticIntMethod(
+                    methodInfo.classID,
+                    methodInfo.methodID,
+                    _impl
+            ));
+            methodInfo.env->DeleteLocalRef(methodInfo.classID);
+            return result;
+        }
+    }
+    return -1;
+}
+int ARCoreAPIImpl::getRemovedPlanesCount() {
+    if(_impl != nullptr) {
+        JniMethodInfo methodInfo;
+        if (JniHelper::getStaticMethodInfo(methodInfo,
+                                            JCLS_ARAPI,
+                                            "getRemovedPlanesCount",
+                                            "(" JARG_ARAPI ")I")) {
+            auto result = static_cast<int>(methodInfo.env->CallStaticIntMethod(
+                    methodInfo.classID,
+                    methodInfo.methodID,
+                    _impl
+            ));
+            methodInfo.env->DeleteLocalRef(methodInfo.classID);
+            return result;
+        }
+    }
+    return -1;
+}
+int ARCoreAPIImpl::getUpdatedPlanesCount() {
+    if(_impl != nullptr) {
+        JniMethodInfo methodInfo;
+        if (JniHelper::getStaticMethodInfo(methodInfo,
+                                            JCLS_ARAPI,
+                                            "getUpdatedPlanesCount",
+                                            "(" JARG_ARAPI ")I")) {
+            auto result = static_cast<int>(methodInfo.env->CallStaticIntMethod(
+                    methodInfo.classID,
+                    methodInfo.methodID,
+                    _impl
+            ));
+            methodInfo.env->DeleteLocalRef(methodInfo.classID);
+            return result;
+        }
+    }
+    return -1;
+}
+void ARCoreAPIImpl::updatePlanesInfo() {
+    if(_impl != nullptr) {
+        JniMethodInfo methodInfo;
+        if (JniHelper::getStaticMethodInfo(methodInfo,
+                                            JCLS_ARAPI,
+                                            "updatePlanesInfo",
+                                            "(" JARG_ARAPI ")V")) {
+            methodInfo.env->CallStaticVoidMethod(
+                    methodInfo.classID,
+                    methodInfo.methodID,
+                    _impl
+            );
+            methodInfo.env->DeleteLocalRef(methodInfo.classID);
+        }
+    }
+}
+float* ARCoreAPIImpl::getAddedPlanesInfo() {
+    if(_impl != nullptr) {
+        JniMethodInfo methodInfo;
+        if (JniHelper::getStaticMethodInfo(methodInfo,
+                                            JCLS_ARAPI,
+                                            "getAddedPlanesInfo",
+                                            "(" JARG_ARAPI ")[F")) {
+            jfloatArray array = (jfloatArray)methodInfo.env->CallStaticObjectMethod(
+                    methodInfo.classID,
+                    methodInfo.methodID,
+                    _impl
+            );
+            jsize len = methodInfo.env->GetArrayLength(array);
+            if (len <= 5 * 12) {
+                jfloat* elems = methodInfo.env->GetFloatArrayElements(array, 0);
+                if (elems) {
+                    //_addedPlanesInfo->reserve(len);
+                    //memcpy(&_addedPlanesInfo[0], elems, sizeof(float) * len);
+                    memcpy(_addedPlanesInfo, elems, sizeof(float) * len);
+                    methodInfo.env->ReleaseFloatArrayElements(array, elems, 0);
+                };
+            }
+            methodInfo.env->DeleteLocalRef(methodInfo.classID);
+        }
+    }
+    return _addedPlanesInfo;
+}
+int* ARCoreAPIImpl::getRemovedPlanesInfo() {
+    if(_impl != nullptr) {
+        JniMethodInfo methodInfo;
+        if (JniHelper::getStaticMethodInfo(methodInfo,
+                                            JCLS_ARAPI,
+                                            "getRemovedPlanesInfo",
+                                            "(" JARG_ARAPI ")[I")) {
+            jintArray array = (jintArray)methodInfo.env->CallStaticObjectMethod(
+                    methodInfo.classID,
+                    methodInfo.methodID,
+                    _impl
+            );
+            jsize len = methodInfo.env->GetArrayLength(array);
+            if (len <= 5) {
+                jint* elems = methodInfo.env->GetIntArrayElements(array, nullptr);
+                if (elems) {
+                    memcpy(_removedPlanesInfo, elems, sizeof(int) * len);
+                    methodInfo.env->ReleaseIntArrayElements(array, elems, 0);
+                };
+            }
+            methodInfo.env->DeleteLocalRef(methodInfo.classID);
+        }
+    }
+    return _removedPlanesInfo;//->data();
+}
+float* ARCoreAPIImpl::getUpdatedPlanesInfo() {
+    if(_impl != nullptr) {
+        JniMethodInfo methodInfo;
+        if (JniHelper::getStaticMethodInfo(methodInfo,
+                                            JCLS_ARAPI,
+                                            "getUpdatedPlanesInfo",
+                                            "(" JARG_ARAPI ")[F")) {
+            jfloatArray array = (jfloatArray)methodInfo.env->CallStaticObjectMethod(
+                    methodInfo.classID,
+                    methodInfo.methodID,
+                    _impl
+            );
+            jsize len = methodInfo.env->GetArrayLength(array);
+            if (len <= 5 * 12) {
+                jfloat* elems = methodInfo.env->GetFloatArrayElements(array, 0);
+                if (elems) {
+                    memcpy(_updatedPlanesInfo, elems, sizeof(float) * len);
+                    methodInfo.env->ReleaseFloatArrayElements(array, elems, 0);
+                };
+            }
+            methodInfo.env->DeleteLocalRef(methodInfo.classID);
+        }
+    }
+    return _updatedPlanesInfo;
+}
+
 } // namespace ar
 } // namespace cc

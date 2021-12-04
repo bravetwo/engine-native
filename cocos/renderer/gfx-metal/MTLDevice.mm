@@ -271,13 +271,6 @@ void CCMTLDevice::onPresentCompleted() {
         }
     }
     _inFlightSemaphore->signal();
-
-#if USE_AR_Module
-    auto *const armodule = cc::ar::ARModule::get();
-    if(armodule) {
-        armodule->syncTextureRef();
-    }
-#endif
 }
 
 Queue *CCMTLDevice::createQueue() {

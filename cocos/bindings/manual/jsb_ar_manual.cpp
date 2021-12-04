@@ -89,10 +89,112 @@ static bool js_ar_ARModule_getCameraProjectionMatrix(se::State& s) // NOLINT(rea
 }
 SE_BIND_FUNC(js_ar_ARModule_getCameraProjectionMatrix)
 
+static bool js_ar_ARModule_updatePlanesInfo(se::State& s)
+{
+    cc::ar::ARModule* cobj = (cc::ar::ARModule*)s.nativeThisObject();
+    SE_PRECONDITION2(cobj, false, "js_ar_ARModule_updatePlanesInfo : Invalid Native Object");
+
+    const auto& args = s.args();
+    size_t argc = args.size();
+    if (argc == 0) {
+        cobj->updatePlanesInfo();
+        return true;
+    }
+
+    SE_REPORT_ERROR("wrong number of arguments: %d, was expecting %d", (int)argc, 0);
+    return false;
+}
+SE_BIND_FUNC(js_ar_ARModule_updatePlanesInfo)
+
+static bool js_ar_ARModule_getAddedPlanesInfo(se::State& s)
+{
+    cc::ar::ARModule* cobj = (cc::ar::ARModule*)s.nativeThisObject();
+    SE_PRECONDITION2(cobj, false, "js_ar_ARModule_getAddedPlanesInfo : Invalid Native Object");
+
+    const auto& args = s.args();
+    size_t argc = args.size();
+    if (argc == 0) {
+        float* buffer = cobj->getAddedPlanesInfo();
+        //int count = cobj->getAddedPlanesCount();
+        se::Object* planesInfo = se::Object::createTypedArray(se::Object::TypedArrayType::FLOAT32, buffer, 4 * 5 * 12);
+        s.rval().setObject(planesInfo);
+        return true;
+    }
+
+    SE_REPORT_ERROR("wrong number of arguments: %d, was expecting %d", (int)argc, 0);
+    return false;
+}
+SE_BIND_FUNC(js_ar_ARModule_getAddedPlanesInfo)
+
+static bool js_ar_ARModule_getRemovedPlanesInfo(se::State& s)
+{
+    cc::ar::ARModule* cobj = (cc::ar::ARModule*)s.nativeThisObject();
+    SE_PRECONDITION2(cobj, false, "js_ar_ARModule_getRemovedPlanesInfo : Invalid Native Object");
+
+    const auto& args = s.args();
+    size_t argc = args.size();
+    if (argc == 0) {
+        int* buffer = cobj->getRemovedPlanesInfo();
+        //int count = cobj->getAddedPlanesCount();
+        se::Object* planesInfo = se::Object::createTypedArray(se::Object::TypedArrayType::INT32, buffer, 4 * 5);
+        s.rval().setObject(planesInfo);
+        return true;
+    }
+
+    SE_REPORT_ERROR("wrong number of arguments: %d, was expecting %d", (int)argc, 0);
+    return false;
+}
+SE_BIND_FUNC(js_ar_ARModule_getRemovedPlanesInfo)
+
+static bool js_ar_ARModule_getUpdatedPlanesInfo(se::State& s)
+{
+    cc::ar::ARModule* cobj = (cc::ar::ARModule*)s.nativeThisObject();
+    SE_PRECONDITION2(cobj, false, "js_ar_ARModule_getUpdatedPlanesInfo : Invalid Native Object");
+
+    const auto& args = s.args();
+    size_t argc = args.size();
+    if (argc == 0) {
+        float* buffer = cobj->getUpdatedPlanesInfo();
+        //int count = cobj->getAddedPlanesCount();
+        se::Object* planesInfo = se::Object::createTypedArray(se::Object::TypedArrayType::FLOAT32, buffer, 4 * 5 * 12);
+        s.rval().setObject(planesInfo);
+        return true;
+    }
+
+    SE_REPORT_ERROR("wrong number of arguments: %d, was expecting %d", (int)argc, 0);
+    return false;
+}
+SE_BIND_FUNC(js_ar_ARModule_getUpdatedPlanesInfo)
+
+static bool js_ar_ARModule_getAddedPlanesCount(se::State& s)
+{
+    cc::ar::ARModule* cobj = (cc::ar::ARModule*)s.nativeThisObject();
+    SE_PRECONDITION2(cobj, false, "js_ar_ARModule_getAddedPlanesCount : Invalid Native Object");
+
+    const auto& args = s.args();
+    size_t argc = args.size();
+    if (argc == 0) {
+        int result = cobj->getAddedPlanesCount();
+        s.rval().setInt32(result);
+        return true;
+    }
+
+    SE_REPORT_ERROR("wrong number of arguments: %d, was expecting %d", (int)argc, 0);
+    return false;
+}
+SE_BIND_FUNC(js_ar_ARModule_getAddedPlanesCount)
+
 bool register_all_ar_manual(se::Object *obj) {
     __jsb_cc_ar_ARModule_proto->defineFunction("getCameraPose", _SE(js_ar_ARModule_getCameraPose));
     __jsb_cc_ar_ARModule_proto->defineFunction("getCameraViewMatrix", _SE(js_ar_ARModule_getCameraViewMatrix));
     __jsb_cc_ar_ARModule_proto->defineFunction("getCameraProjectionMatrix", _SE(js_ar_ARModule_getCameraProjectionMatrix));
+
+    __jsb_cc_ar_ARModule_proto->defineFunction("updatePlanesInfo", _SE(js_ar_ARModule_updatePlanesInfo));
+    __jsb_cc_ar_ARModule_proto->defineFunction("getAddedPlanesInfo", _SE(js_ar_ARModule_getAddedPlanesInfo));
+    __jsb_cc_ar_ARModule_proto->defineFunction("getRemovedPlanesInfo", _SE(js_ar_ARModule_getRemovedPlanesInfo));
+    __jsb_cc_ar_ARModule_proto->defineFunction("getUpdatedPlanesInfo", _SE(js_ar_ARModule_getUpdatedPlanesInfo));
+    __jsb_cc_ar_ARModule_proto->defineFunction("getAddedPlanesCount", _SE(js_ar_ARModule_getAddedPlanesCount));
+
     return true;
 }
 

@@ -53,13 +53,22 @@ public:
     void update();
     bool checkStart();
 
-    void setCameraTextureName(int id);
     float* getCameraPose() const;
     float* getCameraViewMatrix() const;
     float* getCameraProjectionMatrix() const;
     float* getCameraTexCoords() const;
+    void setCameraTextureName(int id);
     void* getCameraTextureRef() const;
-    void syncTextureRef() const;
+
+    //void setPlaneFeatureEnable(bool isOn) const;
+    int getAddedPlanesCount() const;
+    int getRemovedPlanesCount() const;
+    int getUpdatedPlanesCount() const;
+    void updatePlanesInfo() const;
+    float* getAddedPlanesInfo() const;
+    int* getRemovedPlanesInfo() const;
+    float* getUpdatedPlanesInfo() const;
+    
 private:
     std::unique_ptr<IARAPI> _impl;
 };

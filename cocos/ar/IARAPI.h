@@ -50,13 +50,21 @@ public:
     virtual void update() = 0;
     virtual bool checkStart() = 0;
 
-    virtual void setCameraTextureName(int id) = 0;
     virtual float* getCameraPose() = 0;
     virtual float* getCameraViewMatrix() = 0;
     virtual float* getCameraProjectionMatrix() = 0;
     virtual float* getCameraTexCoords() = 0;
+    virtual void setCameraTextureName(int id) = 0;
     virtual void* getCameraTextureRef() = 0;
-    virtual void syncTextureRef() = 0;
+
+    //virtual void setPlaneFeatureEnable(bool isOn) = 0;
+    virtual int getAddedPlanesCount() = 0;
+    virtual int getRemovedPlanesCount() = 0;
+    virtual int getUpdatedPlanesCount() = 0;
+    virtual void updatePlanesInfo() = 0;
+    virtual float* getAddedPlanesInfo() = 0;
+    virtual int* getRemovedPlanesInfo() = 0;
+    virtual float* getUpdatedPlanesInfo() = 0;
 };
 
 } // namespace ar

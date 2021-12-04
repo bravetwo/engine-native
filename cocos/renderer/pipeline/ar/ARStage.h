@@ -25,12 +25,7 @@
 
 #pragma once
 
-#define USE_BLIT 0
-#include "../RenderStage.h"
-#include "gfx-gles3/GLES3Wrangler.h"
-#if !USE_BLIT
 #include "../ar/ARBackground.h"
-#endif
 
 namespace cc {
 namespace pipeline {
@@ -61,14 +56,7 @@ private:
     void                      dispenseRenderObject2Queues();
     static RenderStageInfo    initInfo;
 
-    #if !USE_BLIT
-    ARBackground *            _arBackground       = nullptr;
-    #endif
-    gfx::Rect                 _renderArea;
-    uint                      _phaseID = 0;
-    gfx::Texture *_backgroundTex{nullptr};
-    GLuint _glTex{0U};
-    bool _setTexFlag = false;
+    ARBackground * _arBackground = nullptr;
 };
 
 } // namespace pipeline

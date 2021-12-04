@@ -28,9 +28,9 @@
 #include "gfx-base/GFXPipelineState.h"
 #include "gfx-gles3/GLES3Wrangler.h"
 //#include "gfx-gles3/GLES3Context.h"
+#include "renderer/gfx-agent/DeviceAgent.h"
 #include "renderer/gfx-base/GFXDef.h"
 #include "renderer/gfx-base/GFXDevice.h"
-#include "renderer/gfx-agent/DeviceAgent.h"
 
 namespace cc {
 namespace pipeline {
@@ -60,30 +60,26 @@ private:
     T& getAppropriateShaderSource(ShaderSources<T>& sources);
 
     RenderPipeline* _pipeline{nullptr};
-    gfx::Device * _device{nullptr};
-    //gfx::DeviceAgent * _device{nullptr};
+    gfx::Device*    _device{nullptr};
 
-    gfx::Shader *             _shader{nullptr};
-    gfx::Buffer *             _vertexBuffer{nullptr};
-    gfx::Buffer *             _uniformBuffer{nullptr};
-    gfx::Buffer *             _uniformBufferMVP{nullptr};
-    
-    gfx::InputAssembler *     _inputAssembler{nullptr};
-    gfx::DescriptorSetLayout *_descriptorSetLayout{nullptr};
-    gfx::DescriptorSet *      _descriptorSet{nullptr};
-    gfx::PipelineLayout *     _pipelineLayout{nullptr};
-    gfx::PipelineState *      _pipelineState{nullptr};
+    gfx::Shader* _shader{nullptr};
+    gfx::Buffer* _vertexBuffer{nullptr};
 
-    #if CC_PLATFORM == CC_PLATFORM_MAC_IOS
-    gfx::Buffer * _ycbcrTransferBuffer{nullptr};
-    vector<gfx::Texture *> _textures;
-    vector<gfx::GlobalBarrier *> _globalBarriers;
-    vector<gfx::TextureBarrier *> _textureBarriers;
-    #endif
+    gfx::InputAssembler*      _inputAssembler{nullptr};
+    gfx::DescriptorSetLayout* _descriptorSetLayout{nullptr};
+    gfx::DescriptorSet*       _descriptorSet{nullptr};
+    gfx::PipelineLayout*      _pipelineLayout{nullptr};
+    gfx::PipelineState*       _pipelineState{nullptr};
 
-    GLuint _glTex{0U};
-    bool _setTexFlag = false;
+#if CC_PLATFORM == CC_PLATFORM_ANDROID
+    gfx::Buffer* _uniformBuffer{nullptr};
+    GLuint       _glTex{0U};
+    bool         _setTexFlag = false;
+#elif CC_PLATFORM == CC_PLATFORM_MAC_IOS
+    gfx::Buffer*          _ycbcrTransferBuffer{nullptr};
+    vector<gfx::Texture*> _textures;
+#endif
 };
 
-}  // namespace pipeline
-}  // namespace cc
+} // namespace pipeline
+} // namespace cc

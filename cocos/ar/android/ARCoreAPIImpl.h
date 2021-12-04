@@ -44,17 +44,32 @@ public:
     void update() override;
     bool checkStart() override;
 
-    void setCameraTextureName(int id) override;
     float* getCameraPose() override;
     float* getCameraViewMatrix() override;
     float* getCameraProjectionMatrix() override;
     float* getCameraTexCoords() override;
+    void setCameraTextureName(int id) override;
+    void* getCameraTextureRef() override;
+
+    //void setPlaneFeatureEnable(bool isOn) override;
+    int getAddedPlanesCount() override;
+    int getRemovedPlanesCount() override;
+    int getUpdatedPlanesCount() override;
+    void updatePlanesInfo() override;
+    float* getAddedPlanesInfo() override;
+    int* getRemovedPlanesInfo() override;
+    float* getUpdatedPlanesInfo() override;
+    
 protected:
     _jobject* _impl;
     Pose *_cameraPose = new Pose();
     Matrix *_viewMatrix = new Matrix();
     Matrix *_projMatrix = new Matrix();
     TexCoords *_cameraTexCoords = new TexCoords();
+
+    float* _addedPlanesInfo = new float[60];
+    int* _removedPlanesInfo = new int[5];
+    float* _updatedPlanesInfo = new float[60];
 };
 
 } // namespace ar

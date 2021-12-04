@@ -57,9 +57,7 @@ RenderStageInfo ARStage::initInfo = {
 const RenderStageInfo &ARStage::getInitializeInfo() { return ARStage::initInfo; }
 
 ARStage::ARStage() {
-#if !USE_BLIT
     _arBackground = CC_NEW(ARBackground);
-#endif
 }
 
 ARStage::~ARStage() = default;
@@ -72,10 +70,7 @@ bool ARStage::initialize(const RenderStageInfo &info) {
 void ARStage::activate(RenderPipeline *pipeline, RenderFlow *flow) {
     RenderStage::activate(pipeline, flow);
     
-// ARModule ADD, need remove after modify
-#if !USE_BLIT
     _arBackground->activate(pipeline, _device);
-#endif
 }
 
 void ARStage::destroy() {
@@ -86,27 +81,6 @@ void ARStage::destroy() {
 }
 
 void ARStage::render(scene::Camera *camera) {
-    /*
-    auto *const armodule = cc::ar::ARModule::get();
-    if(!armodule) return;//*/
-    /*
-    if (!_setTexFlag) {
-        /*armodule->setCameraTextureName(static_cast<int>(_glTex));
-        /*
-        gfx::TextureInfo textureInfo;
-        textureInfo.usage  = gfx::TextureUsage::TRANSFER_SRC;
-        textureInfo.format = gfx::Format::RGBA16F;
-        textureInfo.width  = camera->window->getWidth();
-        textureInfo.height = camera->window->getHeight();
-        textureInfo.externalRes = reinterpret_cast<void *>(_glTex);
-        _backgroundTex = gfx::Device::getInstance()->createTexture(textureInfo);
-        //
-        _arBackground->activate(_pipeline, _device);
-        _setTexFlag = true;
-    }
-    //return;
-    //*/
-    ///*
     struct RenderData {
         framegraph::TextureHandle outputTex;
         framegraph::TextureHandle depth;
@@ -123,19 +97,17 @@ void ARStage::render(scene::Camera *camera) {
             static_cast<uint>(camera->window->getHeight() * shadingScale),
         };
         data.outputTex = builder.create(RenderPipeline::fgStrHandleOutColorTexture, colorTexInfo);
-#if USE_BLIT
-        data.outputTex = builder.write(data.outputTex);
-#else
+        /*
         //if (hasFlag(static_cast<gfx::ClearFlags>(camera->clearFlag), gfx::ClearFlagBit::COLOR)) {
             _clearColors[0].x = camera->clearColor.x;
             _clearColors[0].y = camera->clearColor.y;
             _clearColors[0].z = camera->clearColor.z;
         //}
         _clearColors[0].w = camera->clearColor.w;
-
+        //*/
         framegraph::RenderTargetAttachment::Descriptor colorAttachmentInfo;
         colorAttachmentInfo.usage      = framegraph::RenderTargetAttachment::Usage::COLOR;
-        colorAttachmentInfo.clearColor = _clearColors[0];
+        //colorAttachmentInfo.clearColor = _clearColors[0];
         colorAttachmentInfo.loadOp     = gfx::LoadOp::CLEAR;
         /*
         auto clearFlags = static_cast<gfx::ClearFlagBit>(camera->clearFlag);
@@ -168,12 +140,9 @@ void ARStage::render(scene::Camera *camera) {
 
         data.depth = builder.create(RenderPipeline::fgStrHandleOutDepthTexture, depthTexInfo);
         data.depth = builder.write(data.depth, depthAttachmentInfo);
-
-        builder.writeToBlackboard(RenderPipeline::fgStrHandleOutDepthTexture, data.depth);
-        //*/ 
-#endif
+        
         builder.writeToBlackboard(RenderPipeline::fgStrHandleOutColorTexture, data.outputTex);
-
+        builder.writeToBlackboard(RenderPipeline::fgStrHandleOutDepthTexture, data.depth);
         builder.setViewport(_pipeline->getViewport(camera), _pipeline->getScissor(camera));
 
     };
@@ -182,22 +151,8 @@ void ARStage::render(scene::Camera *camera) {
     auto arExec = [this, camera, offset](const RenderData & /*data*/, const framegraph::DevicePassResourceTable &table) {
         auto *cmdBuff = _pipeline->getCommandBuffers()[0];
 
-#if USE_BLIT
-        //*
-        auto *           texColor = static_cast<gfx::Texture *>(table.getWrite(data.outputTex));
-        gfx::TextureBlit region;
-        region.srcExtent.width  = _backgroundTex->getWidth();
-        region.srcExtent.height = _backgroundTex->getHeight();
-        region.dstExtent.width  = _backgroundTex->getWidth();
-        region.dstExtent.height = _backgroundTex->getHeight();
-        cmdBuff->blitTexture(_backgroundTex, texColor, &region, 1, gfx::Filter::LINEAR);
-        //*/
-#else
         auto *renderPass = table.getRenderPass();
-        //cmdBuff->bindDescriptorSet(globalSet, _pipeline->getDescriptorSet(), 1, &offset);
         _arBackground->render(camera, renderPass, cmdBuff);
-        //_arBackground->render(camera, renderPass, cmdBuff, {offset});
-#endif
     };
 
     // add pass

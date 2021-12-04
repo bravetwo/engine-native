@@ -56,6 +56,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import android.content.Context;
 import android.app.Activity;
@@ -86,6 +87,16 @@ public class CocosARCoreAPI implements CocosARAPI, ActivityCompat.OnRequestPermi
     // Google Play Services for AR if necessary.
     private boolean mUserRequestedInstall = true;
     private boolean mActive;
+
+    // plane feature
+    private final static int PLANE_INFOS_SIZE = 12;
+    private int planesMaxSize = 5;
+    private int planeTag = 0;
+    private final HashMap<Integer, Plane> planesMap = new HashMap<>();
+    private final HashMap<Plane, Integer> planesIndexMap = new HashMap<>();
+    private List<Integer> mAddedPlanes = new ArrayList<>();
+    private List<Integer> mRemovedPlanes = new ArrayList<>();
+    private List<Integer> mUpdatedPlanes = new ArrayList<>();
 
     public static CocosARCoreAPI init() {
         api = new CocosARCoreAPI();
@@ -141,6 +152,41 @@ public class CocosARCoreAPI implements CocosARAPI, ActivityCompat.OnRequestPermi
     }
     public static float[] getCameraTexCoords(final CocosARCoreAPI api) {
         return api.mCameraTexCoords;
+    }
+
+    // plane feature
+    public static void updatePlanesInfo(final CocosARCoreAPI api) {
+        api.updatePlanesInfo(api.planesMaxSize);
+    }
+    public static float[] getAddedPlanesInfo(final CocosARCoreAPI api) {
+        return api.getPlanesInfoFromList(api.mAddedPlanes);
+    }
+    public static int[] getRemovedPlanesInfo(final CocosARCoreAPI api) {
+        int size = api.mRemovedPlanes.size();
+        //int[] result = new int[size];
+        int[] result = new int[5];
+        Integer[] temp = api.mRemovedPlanes.toArray(new Integer[size]);
+        //size = size > 5 ? 5 : size; 
+        //for (int n = 0; n < size; ++n) {
+        for (int n = 0; n < 5; ++n) {
+            if( n < size)
+                result[n] = temp[n];
+            else
+                result[n] = -1;
+        }
+        return result;
+    }
+    public static float[] getUpdatedPlanesInfo(final CocosARCoreAPI api) {
+        return api.getPlanesInfoFromList(api.mUpdatedPlanes);
+    }
+    public static int getAddedPlanesCount(final CocosARCoreAPI api) {
+        return api.mAddedPlanes.size();
+    }
+    public static int getRemovedPlanesCount(final CocosARCoreAPI api) {
+        return api.mRemovedPlanes.size();
+    }
+    public static int getUpdatedPlanesCount(final CocosARCoreAPI api) {
+        return api.mUpdatedPlanes.size();
     }
 
     // for CocosARDisplayRotationHelper 
@@ -319,5 +365,141 @@ public class CocosARCoreAPI implements CocosARAPI, ActivityCompat.OnRequestPermi
         }
         //finish();
         }
+    }
+
+    //#region plane feature
+    private void updatePlanesInfo(int maxSize) {
+        if (mSession == null || mCamera == null) return;
+
+        Collection<Plane> allPlanes = mSession.getAllTrackables(Plane.class);
+        
+        // Planes must be sorted by distance from camera so that we draw closer planes first, and
+        // they occlude the farther planes.
+        List<SortablePlane> sortedPlanes = new ArrayList<>();
+
+        Pose cameraPose = mCamera.getDisplayOrientedPose();
+        for (Plane plane : allPlanes) {
+            //if (plane.getTrackingState() != TrackingState.TRACKING || plane.getSubsumedBy() != null) {
+            if (plane.getTrackingState() != TrackingState.TRACKING || plane.getType() == Plane.Type.VERTICAL) {
+              continue;
+            }
+            
+            float distance = calculateDistanceToPlane(plane.getCenterPose(), cameraPose);
+            if (distance < 0) { // Plane is back-facing.
+              continue;
+            }
+            sortedPlanes.add(new SortablePlane(distance, plane));
+        }
+        Collections.sort(
+            sortedPlanes,
+            new Comparator<SortablePlane>() {
+                @Override
+                public int compare(SortablePlane a, SortablePlane b) {
+                    return Float.compare(b.distance, a.distance);
+                }
+            }
+        );
+        
+        int size = sortedPlanes.size();
+        size = size > maxSize ? maxSize : size;
+        int count = 0, offset = 0;
+
+        mAddedPlanes.clear();
+        mUpdatedPlanes.clear();
+        mRemovedPlanes.clear();
+
+        for (SortablePlane sortedPlane : sortedPlanes) {
+            if (count >= size) continue;
+
+            Plane plane = sortedPlane.plane;
+            Integer planeIndex = planesIndexMap.get(plane);
+            Plane subsumedByPlane = plane.getSubsumedBy();
+
+            if (planeIndex == null) {
+                planesMap.put(planeTag, plane);
+                planesIndexMap.put(plane, planeTag);
+                planeIndex = planeTag++;
+
+                // add
+                mAddedPlanes.add(planeIndex);
+            } else {
+                if(subsumedByPlane != null) {
+                    // remove
+                    mRemovedPlanes.add(planeIndex);
+                    continue;
+                } else {
+                    // update
+                    mUpdatedPlanes.add(planeIndex);
+                }
+            }
+
+            ++count;
+        }
+    }
+
+    private float[] getPlanesInfoFromList(List<Integer> planeIndices) {
+        float[] planesInfo = new float[PLANE_INFOS_SIZE * planeIndices.size()];
+        int offset = 0;
+        int maxSize = 5;
+        int n = 0;
+        for (int index : planeIndices) {
+            if (n >= maxSize) break;
+            Plane plane = planesMap.get(index);
+            copyPlaneToArray(plane, index, planesInfo, offset);
+            offset += PLANE_INFOS_SIZE;
+            ++n;
+        }
+        return planesInfo;
+    }
+
+    private static class SortablePlane {
+        final float distance;
+        final Plane plane;
+    
+        SortablePlane(float distance, Plane plane) {
+            this.distance = distance;
+            this.plane = plane;
+        }
+    }
+
+    // Calculate the normal distance to plane from cameraPose, the given planePose should have y axis
+    // parallel to plane's normal, for example plane's center pose or hit test pose.
+    public static float calculateDistanceToPlane(Pose planePose, Pose cameraPose) {
+        float[] normal = new float[3];
+        float cameraX = cameraPose.tx();
+        float cameraY = cameraPose.ty();
+        float cameraZ = cameraPose.tz();
+        // Get transformed Y axis of plane's coordinate system.
+        planePose.getTransformedAxis(1, 1.0f, normal, 0);
+        // Compute dot product of plane's normal with vector from camera to plane center.
+        return (cameraX - planePose.tx()) * normal[0]
+            + (cameraY - planePose.ty()) * normal[1]
+            + (cameraZ - planePose.tz()) * normal[2];
+    }
+
+    //#endregion
+
+    private static void copyPoseToArray(Pose src, float[] arr) {
+        copyPoseToArray(src, arr, 0);
+    }
+
+    private static void copyPoseToArray(Pose src, float[] arr, int offset) {
+        arr[offset] = src.tx();
+        arr[offset+1] = src.ty();
+        arr[offset+2] = src.tz();
+        arr[offset+3] = src.qx();
+        arr[offset+4] = src.qy();
+        arr[offset+5] = src.qz();
+        arr[offset+6] = src.qw();
+    }
+
+    private static void copyPlaneToArray(Plane src, int index, float[] arr, int offset) {
+        arr[offset++] = index;
+        arr[offset++] = src.getType().ordinal();
+        arr[offset++] = src.getTrackingState().ordinal();
+        arr[offset++] = src.getExtentX();
+        arr[offset++] = src.getExtentZ();
+        Pose pose = src.getCenterPose();
+        copyPoseToArray(pose, arr, offset);
     }
 }
