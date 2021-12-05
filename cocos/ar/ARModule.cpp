@@ -29,8 +29,11 @@
 
 #if CC_PLATFORM == CC_PLATFORM_ANDROID
 
-#include "ar/android/ARCoreAPIImpl.h"
-using ARAPIImpl = cc::ar::ARCoreAPIImpl;
+//#include "ar/android/ARCoreAPIImpl.h"
+//using ARAPIImpl = cc::ar::ARCoreAPIImpl;
+
+#include "ar/android/AREngineAPIImpl.h"
+using ARAPIImpl = cc::ar::AREngineAPIImpl;
 
 #elif CC_PLATFORM == CC_PLATFORM_MAC_IOS
 

@@ -1838,6 +1838,8 @@ if(USE_AR_MODULE)
     cocos_source_files(
         cocos/ar/android/ARCoreAPIImpl.cpp
         cocos/ar/android/ARCoreAPIImpl.h
+        cocos/ar/android/AREngineAPIImpl.cpp
+        cocos/ar/android/AREngineAPIImpl.h
     )
     elseif(IOS)
     cocos_source_files(
