@@ -80,12 +80,12 @@ public class CocosARDisplayRotationHelper implements DisplayListener {
     }
 
     /**
-     * Updates the session display geometry if a change was posted either by {@link
-     * #onSurfaceChanged(int, int)} call or by {@link #onDisplayChanged(int)} system callback. This
-     * function should be called explicitly before each call to {@link Session#update()}. This
+     * Updates the session display geometry if a change was posted either by
+     * onSurfaceChanged(int, int) call or by onDisplayChanged(int) system callback. This
+     * function should be called explicitly before each call to Session update(). This
      * function will also clear the 'pending update' (viewportChanged) flag.
      *
-     * @param session the {@link Session} object to update if display geometry changed.
+     * session the object to update if display geometry changed.
      */
     public void updateDisplayGeometry(CocosARAPI api) {
         if (mViewportChanged) {

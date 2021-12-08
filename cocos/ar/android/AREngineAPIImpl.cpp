@@ -30,7 +30,7 @@
 #include "renderer/gfx-base/GFXDevice.h"
 
 #ifndef JCLS_ARAPI
-#define JCLS_ARAPI "com/cocos/lib/CocosARCoreAPI"
+#define JCLS_ARAPI "com/cocos/lib/CocosAREngineAPI"
 #endif
 #define JARG_ARAPI "L" JCLS_ARAPI ";"
 
@@ -92,13 +92,13 @@ void AREngineAPIImpl::start() {
             );
             methodInfo.env->DeleteLocalRef(methodInfo.classID);
         }
-
+        //*
         auto* device = gfx::DeviceAgent::getInstance();
         auto updateExec = [this]() {
             update();
         };
 
-        device->registerOnAcquireCallback(updateExec);
+        device->registerOnAcquireCallback(updateExec);//*/
     }
 }
 

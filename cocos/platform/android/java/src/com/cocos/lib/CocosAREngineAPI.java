@@ -205,7 +205,10 @@ public class CocosAREngineAPI implements CocosARAPI, ActivityCompat.OnRequestPer
     }
 
     private void updateCameraPose() {
+        if(mCamera == null ) return;
+
         ARPose pose = mCamera.getDisplayOrientedPose();
+        //ARPose pose = mCamera.getPose();
         mCameraPose[0] = pose.tx();
         mCameraPose[1] = pose.ty();
         mCameraPose[2] = pose.tz();
@@ -290,6 +293,10 @@ public class CocosAREngineAPI implements CocosARAPI, ActivityCompat.OnRequestPer
         if (mSession == null) {
             try {
                 mSession = new ARSession(GlobalObject.getActivity());
+                ARWorldTrackingConfig config = new ARWorldTrackingConfig(mSession);
+                config.setFocusMode(ARConfigBase.FocusMode.AUTO_FOCUS);
+                mSession.configure(config);
+
             } catch (ARUnavailableServiceNotInstalledException e) {
                 e.printStackTrace();
             } catch (ARUnavailableClientSdkTooOldException e) {

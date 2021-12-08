@@ -325,6 +325,7 @@ void ARBackground::render(scene::Camera *camera, gfx::RenderPass *renderPass, gf
         gfx::TextureInfo textureInfo;
         textureInfo.usage           = gfx::TextureUsage::SAMPLED | gfx::TextureUsage::TRANSFER_SRC;
         textureInfo.format          = gfx::Format::RGBA16F;
+        //textureInfo.format          = gfx::Format::RGBA8;
         textureInfo.width           = camera->width;
         textureInfo.height          = camera->height;
         textureInfo.externalRes     = reinterpret_cast<void *>(_glTex);
