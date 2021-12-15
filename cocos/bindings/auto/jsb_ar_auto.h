@@ -17,6 +17,7 @@ SE_DECLARE_FUNC(js_ar_ARModule_setCameraTextureName);
 SE_DECLARE_FUNC(js_ar_ARModule_start);
 SE_DECLARE_FUNC(js_ar_ARModule_onResume);
 SE_DECLARE_FUNC(js_ar_ARModule_onPause);
+SE_DECLARE_FUNC(js_ar_ARModule_beforeUpdate);
 SE_DECLARE_FUNC(js_ar_ARModule_update);
 SE_DECLARE_FUNC(js_ar_ARModule_ARModule);
 

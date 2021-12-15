@@ -59,7 +59,8 @@ import com.huawei.hiar.exceptions.ARUnavailableServiceNotInstalledException;
 //import com.huawei.hiar.exceptions.UnavailableDeviceNotCompatibleException;
 //import com.huawei.hiar.exceptions.UnavailableSdkTooOldException;
 import com.huawei.hiar.exceptions.ARUnavailableUserDeclinedInstallationException;
-
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -76,7 +77,7 @@ import android.util.Log;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-public class CocosAREngineAPI implements CocosARAPI, ActivityCompat.OnRequestPermissionsResultCallback {
+public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestPermissionsResultCallback*/ {
     private static final String TAG = CocosAREngineAPI.class.getSimpleName();
     private static CocosAREngineAPI api = null;
     
@@ -90,13 +91,18 @@ public class CocosAREngineAPI implements CocosARAPI, ActivityCompat.OnRequestPer
     private float[] mViewMatrix = new float[16];
     private float[] mProjMatrix = new float[16];
 
-    private float[] mQuadCoords = {-1f, -1f, -1f, 1f, 1f, -1f, 1f, 1f};
+    //private float[] mQuadCoords = {-1f, -1f, -1f, 1f, 1f, -1f, 1f, 1f};
+    private float[] mQuadCoords = {0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f};
     private float[] mCameraTexCoords = new float[8];
+    private FloatBuffer mQuadCoordsBuffer;
+    private FloatBuffer mTexCoordsBuffer;
 
     // requestInstall(Activity, true) will triggers installation of
     // Google Play Services for AR if necessary.
     private boolean mUserRequestedInstall = true;
     private boolean mActive;
+
+    private int mTextureId = 0;
 
     // plane feature
     private final static int PLANE_INFOS_SIZE = 12;
@@ -133,20 +139,24 @@ public class CocosAREngineAPI implements CocosARAPI, ActivityCompat.OnRequestPer
     }
     public static void update(final CocosAREngineAPI api) {
         if (api.mSession == null) return;
+        /*
         api.updateSession();
         api.updateCameraPose();
         api.updateCameraTexCoords();
+        //*/
+        api.onDrawFrame();
     }
 
     public static boolean checkStart(final CocosAREngineAPI api) {
-        if (api != null && api.mSession != null) {
+        if (api != null && api.mSession != null && api.mCamera != null) {
             return true;
         }
         return false;
     }
 
     public static void setCameraTextureName(final CocosAREngineAPI api, int id) {
-        api.mSession.setCameraTextureName(id);
+        //api.mSession.setCameraTextureName(id);
+        api.mTextureId = id;
     }
 
     public static float[] getCameraPose(final CocosAREngineAPI api) {
@@ -161,6 +171,7 @@ public class CocosAREngineAPI implements CocosARAPI, ActivityCompat.OnRequestPer
         return api.mProjMatrix;
     }
     public static float[] getCameraTexCoords(final CocosAREngineAPI api) {
+        api.updateCameraTexCoords();
         return api.mCameraTexCoords;
     }
 
@@ -208,7 +219,6 @@ public class CocosAREngineAPI implements CocosARAPI, ActivityCompat.OnRequestPer
         if(mCamera == null ) return;
 
         ARPose pose = mCamera.getDisplayOrientedPose();
-        //ARPose pose = mCamera.getPose();
         mCameraPose[0] = pose.tx();
         mCameraPose[1] = pose.ty();
         mCameraPose[2] = pose.tz();
@@ -222,19 +232,27 @@ public class CocosAREngineAPI implements CocosARAPI, ActivityCompat.OnRequestPer
         if (mFrame.hasDisplayGeometryChanged()) {
             // If display rotation changed (also includes view size change), we need to re-query the UV
             // coordinates for the screen rect, as they may have changed as well.
-            FloatBuffer quadCoords = FloatBuffer.allocate(8);
-            FloatBuffer texCoords = FloatBuffer.allocate(8);
-            quadCoords.put(mQuadCoords);
-            mFrame.transformDisplayUvCoords(quadCoords, texCoords);
-            mCameraTexCoords = texCoords.array();
+
+            mFrame.transformDisplayUvCoords(mQuadCoordsBuffer, mTexCoordsBuffer);
+            //mCameraTexCoords = mTexCoordsBuffer.array();
+            //System.arraycopy(mCameraTexCoords, 0, mTexCoordsBuffer.array(), 0, 8);
+            mCameraTexCoords[0] = mTexCoordsBuffer.get(0);
+            mCameraTexCoords[1] = mTexCoordsBuffer.get(1);
+            mCameraTexCoords[2] = mTexCoordsBuffer.get(2);
+            mCameraTexCoords[3] = mTexCoordsBuffer.get(3);
+            mCameraTexCoords[4] = mTexCoordsBuffer.get(4);
+            mCameraTexCoords[5] = mTexCoordsBuffer.get(5);
+            mCameraTexCoords[6] = mTexCoordsBuffer.get(6);
+            mCameraTexCoords[7] = mTexCoordsBuffer.get(7);
         }
     }
 
     private void checkCamera() {
         Activity activity = GlobalObject.getActivity();
+        /*
         if (!CocosARCameraPermissionHelper.hasCameraPermission(activity)) {
             CocosARCameraPermissionHelper.requestCameraPermission(activity);
-        }
+        }//*/
     }
 
     // -1 not supported, 0 not installed, 1 ready
@@ -332,6 +350,23 @@ public class CocosAREngineAPI implements CocosARAPI, ActivityCompat.OnRequestPer
         }
         mDisplayRotationHelper.registerDisplayListener();
 
+        /*
+        The reason for creating a ByteBuffer first is that 
+        you want to use the allocateDirect call to create a direct byte buffer, 
+        which benefits from the accelerated operations. 
+        You then create a FloatBuffer from this that shares the same memory. 
+        The FloatBuffer doesn't itself have an allocateDirect method for some reason, 
+        which is why you have to go via ByteBuffer. 
+        */
+        ByteBuffer quadCoordsByteBuffer = ByteBuffer.allocateDirect(32);
+        quadCoordsByteBuffer.order(ByteOrder.nativeOrder());
+        mQuadCoordsBuffer = quadCoordsByteBuffer.asFloatBuffer();
+        mQuadCoordsBuffer.put(mQuadCoords);
+        mQuadCoordsBuffer.position(0);
+        ByteBuffer texCoordsByteBuffer = ByteBuffer.allocateDirect(32);
+        texCoordsByteBuffer.order(ByteOrder.nativeOrder());
+        mTexCoordsBuffer = texCoordsByteBuffer.asFloatBuffer();
+
         try {
             mSession.resume();
             //CocosActivity activity = (CocosActivity)GlobalObject.getActivity();
@@ -358,6 +393,8 @@ public class CocosAREngineAPI implements CocosARAPI, ActivityCompat.OnRequestPer
     private void updateSession() {
         mDisplayRotationHelper.updateDisplayGeometry(api);
 
+        mSession.setCameraTextureName(mTextureId);
+
         try {
             mFrame = mSession.update();
         } catch (ARCameraNotAvailableException e) {
@@ -365,11 +402,35 @@ public class CocosAREngineAPI implements CocosARAPI, ActivityCompat.OnRequestPer
         }
 
         mCamera = mFrame.getCamera();
+        /*
+        ARTrackable.TrackingState state = mCamera.getTrackingState();
+        if(state == ARTrackable.TrackingState.PAUSED || state == ARTrackable.TrackingState.STOPPED) {
+            mSession.resume();
+        }//*/
     }
 
+    private void onDrawFrame() {
+        // Log.d(TAG, "onDrawFrame setCameraTextureName"+textureId);
+        /*
+        if (mDisplayRotationUtil.getDeviceRotation()) {
+          mDisplayRotationUtil.updateArSessionDisplayGeometry(mSession);
+        }
+        //*/
+        mDisplayRotationHelper.updateDisplayGeometry(api);
+
+        mSession.setCameraTextureName(mTextureId);
+
+        mFrame = mSession.update();
+        mCamera = mFrame.getCamera();
+
+        updateCameraPose();
+    }
+
+    /*
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
         Activity activity = GlobalObject.getActivity();
+        /*
         if (!CocosARCameraPermissionHelper.hasCameraPermission(activity)) {
         Toast.makeText(
                 activity,
@@ -381,8 +442,8 @@ public class CocosAREngineAPI implements CocosARAPI, ActivityCompat.OnRequestPer
             CocosARCameraPermissionHelper.launchPermissionSettings(activity);
         }
         //finish();
-        }
-    }
+        }//
+    }*/
 
     //#region plane feature
     private void updatePlanesInfo(int maxSize) {

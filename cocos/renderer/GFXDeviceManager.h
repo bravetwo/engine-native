@@ -34,7 +34,7 @@
 
 //#undef CC_USE_VULKAN
 //#undef CC_USE_METAL
-//#undef CC_USE_GLES3
+#undef CC_USE_GLES3
 //#undef CC_USE_GLES2
 
 #ifdef CC_USE_VULKAN

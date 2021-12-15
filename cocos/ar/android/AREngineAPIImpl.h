@@ -43,6 +43,7 @@ public:
     void pause() override;
     void update() override;
     bool checkStart() override;
+    void beforeUpdate() override;
 
     float* getCameraPose() override;
     float* getCameraViewMatrix() override;

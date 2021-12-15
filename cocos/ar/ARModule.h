@@ -50,6 +50,7 @@ public:
     void start();
     void onResume();
     void onPause();
+    void beforeUpdate();
     void update();
     bool checkStart();
 

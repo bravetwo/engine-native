@@ -47,6 +47,7 @@ public:
     virtual void start() = 0;
     virtual void resume() = 0;
     virtual void pause() = 0;
+    virtual void beforeUpdate() {}
     virtual void update() = 0;
     virtual bool checkStart() = 0;
 

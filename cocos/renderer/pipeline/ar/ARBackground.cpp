@@ -136,6 +136,7 @@ void ARBackground::activate(RenderPipeline *pipeline, gfx::Device *dev) {
             varying vec2 v_texCoord;
             void main() {
                 v_texCoord = (u_CoordMatrix * vec4(a_texCoord, 0, 1)).xy;
+                v_texCoord = vec2(1.0 - v_texCoord.x, v_texCoord.y);
                 gl_Position = u_MVP * vec4(a_position, 0, 1);
             }
         )",

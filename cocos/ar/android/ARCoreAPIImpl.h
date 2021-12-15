@@ -41,6 +41,7 @@ public:
     void start() override;
     void resume() override;
     void pause() override;
+    void beforeUpdate() override;
     void update() override;
     bool checkStart() override;
 

@@ -28,6 +28,7 @@
 #include "platform/java/jni/JniHelper.h"
 #include "platform/java/jni/JniImp.h"
 #include "renderer/gfx-base/GFXDevice.h"
+#include "base/threading/MessageQueue.h"
 
 #ifndef JCLS_ARAPI
 #define JCLS_ARAPI "com/cocos/lib/CocosAREngineAPI"
@@ -92,7 +93,7 @@ void AREngineAPIImpl::start() {
             );
             methodInfo.env->DeleteLocalRef(methodInfo.classID);
         }
-        //*
+        /*
         auto* device = gfx::DeviceAgent::getInstance();
         auto updateExec = [this]() {
             update();
@@ -134,6 +135,19 @@ void AREngineAPIImpl::pause() {
             methodInfo.env->DeleteLocalRef(methodInfo.classID);
         }
     }
+}
+
+void AREngineAPIImpl::beforeUpdate() {
+    auto* device = gfx::DeviceAgent::getInstance();
+    auto* msgQueue = device->getMessageQueue();
+
+    ENQUEUE_MESSAGE_1(
+        msgQueue, DevicePresent,
+        api, this,
+        {
+            api->update();
+        }
+    );
 }
 
 void AREngineAPIImpl::update() {

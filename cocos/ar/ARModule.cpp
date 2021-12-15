@@ -78,6 +78,10 @@ void ARModule::onPause() {
     _impl->pause();
 }
 
+void ARModule::beforeUpdate() {
+    _impl->beforeUpdate();
+}
+
 void ARModule::update() {
     // IOS act
     //_impl->update();

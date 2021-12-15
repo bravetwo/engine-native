@@ -16,6 +16,7 @@ android {
         manifest.srcFile "AndroidManifest.xml"
         java {
             srcDir "../java/src"
+            //exclude 'com/cocos/lib/CocosAREngineAPI.java'
             exclude 'com/cocos/lib/CocosARCoreAPI.java'
         }
     }
@@ -37,7 +38,8 @@ android {
 dependencies {
     //implementation 'com.google.ar:core:1.26.0'
     implementation 'androidx.appcompat:appcompat:1.2.0'
-    implementation 'com.huawei.hms:arenginesdk:3.0.0.11'
+    //implementation 'com.huawei.hms:arenginesdk:3.0.0.11'
+    implementation 'com.huawei.hms:arenginesdk:3.5.0.4'
     implementation 'de.javagl:obj:0.3.0'
     implementation fileTree(include: ['*.jar', '*.aar'], dir: '../java/libs')
 }
