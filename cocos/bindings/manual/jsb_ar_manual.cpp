@@ -115,8 +115,9 @@ static bool js_ar_ARModule_getAddedPlanesInfo(se::State& s)
     size_t argc = args.size();
     if (argc == 0) {
         float* buffer = cobj->getAddedPlanesInfo();
-        //int count = cobj->getAddedPlanesCount();
-        se::Object* planesInfo = se::Object::createTypedArray(se::Object::TypedArrayType::FLOAT32, buffer, 4 * 5 * 12);
+        int len = cobj->getInfoLength();
+        //se::Object* planesInfo = se::Object::createTypedArray(se::Object::TypedArrayType::FLOAT32, buffer, 4 * 5 * 12);
+        se::Object* planesInfo = se::Object::createTypedArray(se::Object::TypedArrayType::FLOAT32, buffer, 4 * len);
         s.rval().setObject(planesInfo);
         return true;
     }

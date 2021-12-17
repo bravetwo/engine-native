@@ -388,6 +388,9 @@ void AREngineAPIImpl::updatePlanesInfo() {
     }
 }
 float* AREngineAPIImpl::getAddedPlanesInfo() {
+    delete[] _addedPlanesInfo;
+    _addedPlanesInfo = nullptr;
+
     if(_impl != nullptr) {
         JniMethodInfo methodInfo;
         if (JniHelper::getStaticMethodInfo(methodInfo,
@@ -400,15 +403,19 @@ float* AREngineAPIImpl::getAddedPlanesInfo() {
                     _impl
             );
             jsize len = methodInfo.env->GetArrayLength(array);
-            if (len <= 5 * 12) {
-                jfloat* elems = methodInfo.env->GetFloatArrayElements(array, 0);
+            //if (len <= 5 * 12) {
+                jfloat* elems = methodInfo.env->GetFloatArrayElements(array, nullptr);
                 if (elems) {
                     //_addedPlanesInfo->reserve(len);
                     //memcpy(&_addedPlanesInfo[0], elems, sizeof(float) * len);
-                    memcpy(_addedPlanesInfo, elems, sizeof(float) * len);
+                    auto* info = new float[len];
+                    _infoLength = len;
+                    //memcpy(_addedPlanesInfo, elems, sizeof(float) * len);
+                    memcpy(info, elems, sizeof(float) * len);
                     methodInfo.env->ReleaseFloatArrayElements(array, elems, 0);
-                };
-            }
+                    _addedPlanesInfo = info;
+                }
+            //}
             methodInfo.env->DeleteLocalRef(methodInfo.classID);
         }
     }
@@ -463,6 +470,10 @@ float* AREngineAPIImpl::getUpdatedPlanesInfo() {
         }
     }
     return _updatedPlanesInfo;
+}
+
+int AREngineAPIImpl::getInfoLength() {
+    return _infoLength;
 }
 
 } // namespace ar

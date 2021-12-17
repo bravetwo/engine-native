@@ -118,7 +118,8 @@ void* ARModule::getCameraTextureRef() const {
 }
 
 int ARModule::getAddedPlanesCount() const {
-    return _impl->getAddedPlanesCount();
+    //return _impl->getAddedPlanesCount();
+    return _impl->getInfoLength() / 12;
 }
 int ARModule::getRemovedPlanesCount() const {
     return _impl->getRemovedPlanesCount();
@@ -137,6 +138,10 @@ int* ARModule::getRemovedPlanesInfo() const {
 }
 float* ARModule::getUpdatedPlanesInfo() const {
     return _impl->getUpdatedPlanesInfo();
+}
+
+int ARModule::getInfoLength() const {
+    return _impl->getInfoLength();
 }
 
 } // namespace ar

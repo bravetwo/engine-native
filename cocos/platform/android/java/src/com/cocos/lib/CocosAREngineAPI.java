@@ -67,6 +67,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import android.content.Context;
@@ -113,6 +114,15 @@ public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestP
     private List<Integer> mAddedPlanes = new ArrayList<>();
     private List<Integer> mRemovedPlanes = new ArrayList<>();
     private List<Integer> mUpdatedPlanes = new ArrayList<>();
+    private boolean mEnablePlaneFeature = true;
+    private boolean mEnablePolygon = true;
+    private boolean mAutoRemovePlane = true;
+    private enum PlaneDetectionMode {
+        HORIZONTAL_UPWARD, HORIZONTAL_DOWNWARD, VERTICAL;
+
+        public static final EnumSet<PlaneDetectionMode> ALL = EnumSet.allOf(PlaneDetectionMode.class);
+    }
+    private EnumSet<PlaneDetectionMode> mPlaneDetectionMode = EnumSet.of(PlaneDetectionMode.HORIZONTAL_UPWARD, PlaneDetectionMode.VERTICAL);
 
     public static CocosAREngineAPI init() {
         api = new CocosAREngineAPI();
@@ -446,6 +456,38 @@ public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestP
     }*/
 
     //#region plane feature
+
+    /**
+     *
+     * @param flag HORIZONTAL_UPWARD(1) HORIZONTAL_DOWNWARD(2) VERTICAL(4)
+     */
+    private void SetPlaneDetectionMode(int flag) {
+        if((flag & 1) == 1) mPlaneDetectionMode.add(PlaneDetectionMode.HORIZONTAL_UPWARD);
+
+        if((flag & 2) == 1) mPlaneDetectionMode.add(PlaneDetectionMode.HORIZONTAL_DOWNWARD);
+
+        if((flag & 4) == 1) mPlaneDetectionMode.add(PlaneDetectionMode.VERTICAL);
+    }
+
+    private boolean filterPlaneType(ARPlane.PlaneType planeType) {
+        if(planeType == ARPlane.PlaneType.UNKNOWN_FACING)
+            return false;
+
+        if(mPlaneDetectionMode == PlaneDetectionMode.ALL)
+            return true;
+
+        if(planeType == ARPlane.PlaneType.HORIZONTAL_UPWARD_FACING && mPlaneDetectionMode.contains(PlaneDetectionMode.HORIZONTAL_UPWARD))
+            return true;
+
+        if(planeType == ARPlane.PlaneType.HORIZONTAL_DOWNWARD_FACING && mPlaneDetectionMode.contains(PlaneDetectionMode.HORIZONTAL_DOWNWARD))
+            return true;
+
+        if(planeType == ARPlane.PlaneType.VERTICAL_FACING && mPlaneDetectionMode.contains(PlaneDetectionMode.VERTICAL))
+            return true;
+
+        return false;
+    }
+
     private void updatePlanesInfo(int maxSize) {
         if (mSession == null || mCamera == null) return;
 
@@ -458,10 +500,12 @@ public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestP
         ARPose cameraPose = mCamera.getDisplayOrientedPose();
         for (ARPlane plane : allPlanes) {
             //if (plane.getTrackingState() != TrackingState.TRACKING || plane.getSubsumedBy() != null) {
-            if (plane.getTrackingState() != ARTrackable.TrackingState.TRACKING || plane.getType() == ARPlane.PlaneType.VERTICAL_FACING) {
+            if (plane.getTrackingState() != ARTrackable.TrackingState.TRACKING) {
               continue;
             }
             
+            if (!filterPlaneType(plane.getType())) continue;
+
             float distance = calculateDistanceToPlane(plane.getCenterPose(), cameraPose);
             if (distance < 0) { // Plane is back-facing.
               continue;
@@ -478,6 +522,7 @@ public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestP
             }
         );
         
+        //*
         int size = sortedPlanes.size();
         size = size > maxSize ? maxSize : size;
         int count = 0, offset = 0;
@@ -504,7 +549,6 @@ public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestP
                 if(subsumedByPlane != null) {
                     // remove
                     mRemovedPlanes.add(planeIndex);
-                    continue;
                 } else {
                     // update
                     mUpdatedPlanes.add(planeIndex);
@@ -513,6 +557,7 @@ public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestP
 
             ++count;
         }
+        //*/
     }
 
     private float[] getPlanesInfoFromList(List<Integer> planeIndices) {
@@ -521,7 +566,7 @@ public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestP
         int maxSize = 5;
         int n = 0;
         for (int index : planeIndices) {
-            if (n >= maxSize) break;
+            //if (n >= maxSize) break;
             ARPlane plane = planesMap.get(index);
             copyPlaneToArray(plane, index, planesInfo, offset);
             offset += PLANE_INFOS_SIZE;

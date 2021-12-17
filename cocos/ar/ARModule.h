@@ -69,6 +69,7 @@ public:
     float* getAddedPlanesInfo() const;
     int* getRemovedPlanesInfo() const;
     float* getUpdatedPlanesInfo() const;
+    int getInfoLength() const;
     
 private:
     std::unique_ptr<IARAPI> _impl;

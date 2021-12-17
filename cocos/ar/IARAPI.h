@@ -66,6 +66,7 @@ public:
     virtual float* getAddedPlanesInfo() = 0;
     virtual int* getRemovedPlanesInfo() = 0;
     virtual float* getUpdatedPlanesInfo() = 0;
+    virtual int getInfoLength() {}
 };
 
 } // namespace ar

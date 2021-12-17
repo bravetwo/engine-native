@@ -81,6 +81,11 @@ void ARStage::destroy() {
 }
 
 void ARStage::render(scene::Camera *camera) {
+    // UI_3D: 8388608 0x00800000 (1 << 23)
+    const scene::Node *camNode = camera->node;
+    const int flag = (static_cast<int>(camNode->getLayer())) & 0x00800000;
+    if(flag == 0) return;
+
     struct RenderData {
         framegraph::TextureHandle outputTex;
         framegraph::TextureHandle depth;
