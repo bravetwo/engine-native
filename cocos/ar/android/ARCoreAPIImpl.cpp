@@ -138,6 +138,7 @@ void ARCoreAPIImpl::pause() {
 }
 
 void ARCoreAPIImpl::beforeUpdate() {
+    //*
     auto* device = gfx::DeviceAgent::getInstance();
     auto* msgQueue = device->getMessageQueue();
 
@@ -145,9 +146,28 @@ void ARCoreAPIImpl::beforeUpdate() {
         msgQueue, DevicePresent,
         api, this,
         {
-            api->update();
+            api->onBeforeUpdate();
         }
     );
+    //*/
+    //onBeforeUpdate();
+}
+
+void ARCoreAPIImpl::onBeforeUpdate() {
+    if(_impl != nullptr) {
+        JniMethodInfo methodInfo;
+        if (JniHelper::getStaticMethodInfo(methodInfo,
+                                            JCLS_ARAPI,
+                                            "beforeUpdate",
+                                            "(" JARG_ARAPI ")V")) {
+            methodInfo.env->CallStaticVoidMethod(
+                    methodInfo.classID,
+                    methodInfo.methodID,
+                    _impl
+            );
+            methodInfo.env->DeleteLocalRef(methodInfo.classID);
+        }
+    }
 }
 
 void ARCoreAPIImpl::update() {
@@ -400,15 +420,19 @@ float* ARCoreAPIImpl::getAddedPlanesInfo() {
                     _impl
             );
             jsize len = methodInfo.env->GetArrayLength(array);
-            if (len <= 5 * 12) {
-                jfloat* elems = methodInfo.env->GetFloatArrayElements(array, 0);
+            //if (len <= 5 * 12) {
+                jfloat* elems = methodInfo.env->GetFloatArrayElements(array, nullptr);
                 if (elems) {
                     //_addedPlanesInfo->reserve(len);
                     //memcpy(&_addedPlanesInfo[0], elems, sizeof(float) * len);
-                    memcpy(_addedPlanesInfo, elems, sizeof(float) * len);
+                    //memcpy(_addedPlanesInfo, elems, sizeof(float) * len);
+                    auto* info = new float[len];
+                    _infoLength = len;
+                    memcpy(info, elems, sizeof(float) * len);
                     methodInfo.env->ReleaseFloatArrayElements(array, elems, 0);
-                };
-            }
+                    _addedPlanesInfo = info;
+                }
+            //}
             methodInfo.env->DeleteLocalRef(methodInfo.classID);
         }
     }
@@ -463,6 +487,10 @@ float* ARCoreAPIImpl::getUpdatedPlanesInfo() {
         }
     }
     return _updatedPlanesInfo;
+}
+
+int ARCoreAPIImpl::getInfoLength() {
+    return _infoLength;
 }
 
 } // namespace ar

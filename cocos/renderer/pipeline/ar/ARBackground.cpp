@@ -296,10 +296,10 @@ void ARBackground::activate(RenderPipeline *pipeline, gfx::Device *dev) {
 #if CC_PLATFORM == CC_PLATFORM_ANDROID
     // background id
     auto *deviceAgent = gfx::DeviceAgent::getInstance();
-    deviceAgent->setMultithreaded(false);
+    //deviceAgent->setMultithreaded(false);
     // GL-Specific invocations
     glGenTextures(1, &_glTex);
-    deviceAgent->setMultithreaded(true);
+    //deviceAgent->setMultithreaded(true);
 #endif
 }
 

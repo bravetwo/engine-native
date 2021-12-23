@@ -27,6 +27,7 @@
 
 #include "ar/IARAPI.h"
 #include "renderer/gfx-agent/DeviceAgent.h"
+#include "base/threading/Semaphore.h"
 #include <array>
 
 class _jobject;
@@ -68,12 +69,15 @@ protected:
     Matrix *_viewMatrix = new Matrix();
     Matrix *_projMatrix = new Matrix();
     TexCoords *_cameraTexCoords = new TexCoords();
+    void onBeforeUpdate();
 
     //float* _addedPlanesInfo = new float[60];
     float* _addedPlanesInfo = nullptr;
     int* _removedPlanesInfo = new int[5];
     float* _updatedPlanesInfo = new float[60];
     int _infoLength = 0;
+
+    Semaphore _frameBoundarySemaphore{1};
 };
 
 } // namespace ar

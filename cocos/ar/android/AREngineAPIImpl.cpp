@@ -141,13 +141,33 @@ void AREngineAPIImpl::beforeUpdate() {
     auto* device = gfx::DeviceAgent::getInstance();
     auto* msgQueue = device->getMessageQueue();
 
-    ENQUEUE_MESSAGE_1(
+    ENQUEUE_MESSAGE_2(
         msgQueue, DevicePresent,
         api, this,
+        frameBoundarySemaphore, &_frameBoundarySemaphore,
         {
-            api->update();
+            api->onBeforeUpdate();
+            frameBoundarySemaphore->signal();
         }
     );
+    _frameBoundarySemaphore.wait();
+}
+
+void AREngineAPIImpl::onBeforeUpdate() {
+    if(_impl != nullptr) {
+        JniMethodInfo methodInfo;
+        if (JniHelper::getStaticMethodInfo(methodInfo,
+                                            JCLS_ARAPI,
+                                            "beforeUpdate",
+                                            "(" JARG_ARAPI ")V")) {
+            methodInfo.env->CallStaticVoidMethod(
+                    methodInfo.classID,
+                    methodInfo.methodID,
+                    _impl
+            );
+            methodInfo.env->DeleteLocalRef(methodInfo.classID);
+        }
+    }
 }
 
 void AREngineAPIImpl::update() {

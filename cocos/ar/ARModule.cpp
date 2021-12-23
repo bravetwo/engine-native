@@ -84,7 +84,7 @@ void ARModule::beforeUpdate() {
 
 void ARModule::update() {
     // IOS act
-    //_impl->update();
+    _impl->update();
 }
 
 bool ARModule::checkStart() {

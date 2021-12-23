@@ -85,6 +85,7 @@ void ARStage::render(scene::Camera *camera) {
     const scene::Node *camNode = camera->node;
     const int flag = (static_cast<int>(camNode->getLayer())) & 0x00800000;
     if(flag == 0) return;
+    //return;
 
     struct RenderData {
         framegraph::TextureHandle outputTex;

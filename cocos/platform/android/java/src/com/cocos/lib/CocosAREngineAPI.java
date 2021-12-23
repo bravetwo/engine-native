@@ -147,6 +147,10 @@ public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestP
     public static void pause(final CocosAREngineAPI api) {
         api.pauseSession();
     }
+    public static void beforeUpdate(final CocosAREngineAPI api) {
+        if (api.mSession == null) return;
+        //api.onDrawFrame();
+    }
     public static void update(final CocosAREngineAPI api) {
         if (api.mSession == null) return;
         /*
@@ -177,7 +181,7 @@ public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestP
         return api.mViewMatrix;
     }
     public static float[] getCameraProjectionMatrix(final CocosAREngineAPI api) {
-        if (api.mSession != null) api.mCamera.getProjectionMatrix(api.mProjMatrix, 0, 0.01f, 1000.0f);
+        if (api.mSession != null && api.mCamera != null) api.mCamera.getProjectionMatrix(api.mProjMatrix, 0, 0.01f, 1000.0f);
         return api.mProjMatrix;
     }
     public static float[] getCameraTexCoords(final CocosAREngineAPI api) {

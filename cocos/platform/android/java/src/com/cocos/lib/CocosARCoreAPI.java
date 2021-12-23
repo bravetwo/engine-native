@@ -121,11 +121,19 @@ public class CocosARCoreAPI implements CocosARAPI, ActivityCompat.OnRequestPermi
     public static void pause(final CocosARCoreAPI api) {
         api.pauseSession();
     }
-    public static void update(final CocosARCoreAPI api) {
+
+    public static void beforeUpdate(final CocosARCoreAPI api) {
         if (api.mSession == null) return;
         api.updateSession();
         api.updateCameraPose();
         api.updateCameraTexCoords();
+    }
+
+    public static void update(final CocosARCoreAPI api) {
+        if (api.mSession == null) return;
+        //api.updateSession();
+        //api.updateCameraPose();
+        //api.updateCameraTexCoords();
     }
 
     public static boolean checkStart(final CocosARCoreAPI api) {
@@ -151,6 +159,7 @@ public class CocosARCoreAPI implements CocosARAPI, ActivityCompat.OnRequestPermi
         return api.mProjMatrix;
     }
     public static float[] getCameraTexCoords(final CocosARCoreAPI api) {
+        //api.updateCameraTexCoords();
         return api.mCameraTexCoords;
     }
 
@@ -195,6 +204,8 @@ public class CocosARCoreAPI implements CocosARAPI, ActivityCompat.OnRequestPermi
     }
 
     private void updateCameraPose() {
+        if(mCamera == null) return;
+
         Pose pose = mCamera.getDisplayOrientedPose();
         mCameraPose[0] = pose.tx();
         mCameraPose[1] = pose.ty();
@@ -206,6 +217,8 @@ public class CocosARCoreAPI implements CocosARAPI, ActivityCompat.OnRequestPermi
     }
 
     private void updateCameraTexCoords() {
+        if(mFrame == null) return;
+
         if (mFrame.hasDisplayGeometryChanged()) {
             // If display rotation changed (also includes view size change), we need to re-query the UV
             // coordinates for the screen rect, as they may have changed as well.
