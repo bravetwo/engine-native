@@ -29,11 +29,11 @@
 
 #if CC_PLATFORM == CC_PLATFORM_ANDROID
 
-//#include "ar/android/ARCoreAPIImpl.h"
-//using ARAPIImpl = cc::ar::ARCoreAPIImpl;
+#include "ar/android/ARCoreAPIImpl.h"
+using ARCoreImpl = cc::ar::ARCoreAPIImpl;
 
 #include "ar/android/AREngineAPIImpl.h"
-using ARAPIImpl = cc::ar::AREngineAPIImpl;
+using AREngineImpl = cc::ar::AREngineAPIImpl;
 
 #elif CC_PLATFORM == CC_PLATFORM_MAC_IOS
 
@@ -50,7 +50,13 @@ namespace cc {
 namespace ar {
 
 ARModule::ARModule() {
-#if CC_PLATFORM == CC_PLATFORM_ANDROID || CC_PLATFORM == CC_PLATFORM_MAC_IOS
+#if CC_PLATFORM == CC_PLATFORM_ANDROID
+    _impl = std::make_unique<AREngineImpl>();
+    // check support AREngine
+
+
+    arModuleInstance.reset(this);
+#elif CC_PLATFORM == CC_PLATFORM_MAC_IOS
     _impl = std::make_unique<ARAPIImpl>();
     arModuleInstance.reset(this);
 #endif
@@ -83,7 +89,6 @@ void ARModule::beforeUpdate() {
 }
 
 void ARModule::update() {
-    // IOS act
     _impl->update();
 }
 

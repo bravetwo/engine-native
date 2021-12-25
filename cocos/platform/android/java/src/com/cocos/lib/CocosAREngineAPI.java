@@ -72,6 +72,7 @@ import java.util.HashMap;
 import java.util.List;
 import android.content.Context;
 import android.app.Activity;
+import android.content.Intent;
 import android.widget.Toast;
 import android.os.Handler;
 import android.util.Log;
@@ -104,6 +105,7 @@ public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestP
     private boolean mActive;
 
     private int mTextureId = 0;
+    private boolean isRemindInstall = false;
 
     // plane feature
     private final static int PLANE_INFOS_SIZE = 12;
@@ -131,18 +133,18 @@ public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestP
 
     public static void start(final CocosAREngineAPI api) {
         api.checkCamera();
-        if (api.checkSupportAndUpdate() > 0) {
+        //if (api.checkSupportAndUpdate() > 0) {
             api.startSession();
-        }
+        //}
     }
     public static void onDestroy(final CocosAREngineAPI api) {
         api.closeSession();
     }
     public static void resume(final CocosAREngineAPI api) {
         api.checkCamera();
-        if (api.checkSupportAndUpdate() > 0) {
+        //if (api.checkSupportAndUpdate() > 0) {
             api.startSession();
-        }
+        //}
     }
     public static void pause(final CocosAREngineAPI api) {
         api.pauseSession();
@@ -269,61 +271,30 @@ public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestP
         }//*/
     }
 
-    // -1 not supported, 0 not installed, 1 ready
-    private int checkSupportAndUpdate() {
+    private boolean arEngineAbilityCheck() {
         Activity activity = GlobalObject.getActivity();
-        AREnginesApk.ARAvailability availability = AREnginesApk.checkAvailability(activity);
-        if (availability.isTransient()) {
-            // Continue to query availability at 5Hz while compatibility is checked in the background.
-            new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                checkSupportAndUpdate();
-            }
-            }, 200);
+        boolean isInstallArEngineApk = AREnginesApk.isAREngineApkReady(activity);
+        if (!isInstallArEngineApk && isRemindInstall) {
+            Toast.makeText(activity, "Please agree to install.", Toast.LENGTH_LONG).show();
+            activity.finish();
         }
-
-        switch (availability) {
-            case SUPPORTED_INSTALLED:
-              break;
-            case SUPPORTED_APK_TOO_OLD:
-            case SUPPORTED_NOT_INSTALLED:
-              try {
-                // Request ARCore installation or update if needed.
-                  AREnginesApk.ARInstallStatus installStatus =
-                    AREnginesApk.requestInstall(activity, /*userRequestedInstall=*/ true);
-                switch (installStatus) {
-                  case INSTALL_REQUESTED:
-                    Log.e(TAG, "ARCore installation requested.");
-                    return 0;
-                  case INSTALLED:
-                    break;
-                }
-              } catch (ARUnavailableDeviceNotCompatibleException e) {
-                Log.e(TAG, "ARCore not installed", e);
-                return 0;
-              } catch (ARUnavailableServiceNotInstalledException e) {
-                  Log.e(TAG, "ARCore not installed", e);
-                  return 0;
-              }
-              break;
-            case UNKNOWN_ERROR:
-            case UNKNOWN_CHECKING:
-            case UNKNOWN_TIMED_OUT:
-            case UNSUPPORTED_DEVICE_NOT_CAPABLE:
-              Log.e(
-                  TAG,
-                  "ARCore is not supported on this device, ArCoreApk.checkAvailability() returned "
-                      + availability);
-              return -1;
-          }
-          return 1;
+        Log.d(TAG, "Is Install AR Engine Apk: " + isInstallArEngineApk);
+        if (!isInstallArEngineApk) {
+            activity.startActivity(new Intent(activity, CocosAREngineServerConnectActivity.class));
+            isRemindInstall = true;
+        }
+        return AREnginesApk.isAREngineApkReady(activity);
     }
 
     private void startSession() {
         CocosActivity activity = (CocosActivity)GlobalObject.getActivity();
         if (mSession == null) {
             try {
+                if (!arEngineAbilityCheck()) {
+                    activity.finish();
+                    return;
+                }
+
                 mSession = new ARSession(GlobalObject.getActivity());
                 ARWorldTrackingConfig config = new ARWorldTrackingConfig(mSession);
                 config.setFocusMode(ARConfigBase.FocusMode.AUTO_FOCUS);
@@ -339,26 +310,7 @@ public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestP
                 e.printStackTrace();
             }
         }
-        /*if (mSession == null) {
-            Activity activity = GlobalObject.getActivity();
-            switch (ArCoreApk.getInstance().requestInstall(activity, mUserRequestedInstall)) {
-                case INSTALLED:
-                    // Success: Safe to create the AR session.
-                    mSession = new Session(activity);
-                    break;
-                case INSTALL_REQUESTED:
-                    // When this method returns `INSTALL_REQUESTED`:
-                    // 1. ARCore pauses this activity.
-                    // 2. ARCore prompts the user to install or update Google Play
-                    //    Services for AR (market://details?id=com.huawei.hiar).
-                    // 3. ARCore downloads the latest device profile data.
-                    // 4. ARCore resumes this activity. The next invocation of
-                    //    requestInstall() will either return `INSTALLED` or throw an
-                    //    exception if the installation or update did not succeed.
-                    mUserRequestedInstall = false;
-                    return;
-            }
-        }*/
+
         if (mDisplayRotationHelper == null) {
             mDisplayRotationHelper = new CocosARDisplayRotationHelper(GlobalObject.getActivity());
         }
