@@ -66,7 +66,7 @@ import android.util.Log;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-public class CocosARCoreAPI implements CocosARAPI, ActivityCompat.OnRequestPermissionsResultCallback {
+public class CocosARCoreAPI extends CocosARAPIBase  implements CocosARAPI, ActivityCompat.OnRequestPermissionsResultCallback {
     private static final String TAG = CocosARCoreAPI.class.getSimpleName();
     private static CocosARCoreAPI api = null;
     
@@ -165,7 +165,7 @@ public class CocosARCoreAPI implements CocosARAPI, ActivityCompat.OnRequestPermi
 
     // plane feature
     public static void updatePlanesInfo(final CocosARCoreAPI api) {
-        api.updatePlanesInfo(api.planesMaxSize);
+        api.updatePlaneDetection();
     }
     public static float[] getAddedPlanesInfo(final CocosARCoreAPI api) {
         return api.getPlanesInfoFromList(api.mAddedPlanes);
@@ -288,7 +288,8 @@ public class CocosARCoreAPI implements CocosARAPI, ActivityCompat.OnRequestPermi
           return 1;
     }
 
-    private void startSession() {
+    @Override
+    public void startSession() {
         CocosActivity activity = (CocosActivity)GlobalObject.getActivity();
         if (mSession == null) {
             try {
@@ -341,17 +342,25 @@ public class CocosARCoreAPI implements CocosARAPI, ActivityCompat.OnRequestPermi
         }
     }
 
-    private void closeSession() {
+    @Override
+    public void closeSession() {
         mSession.close();
         mSession = null;
     }
 
-    private void pauseSession() {
+    @Override
+    public void resumeSession() {
+
+    }
+
+    @Override
+    public void pauseSession() {
         mSession.pause();
         mDisplayRotationHelper.unregisterDisplayListener();
     }
 
-    private void updateSession() {
+    @Override
+    public void updateSession() {
         mDisplayRotationHelper.updateDisplayGeometry(api);
 
         try {
@@ -380,8 +389,47 @@ public class CocosARCoreAPI implements CocosARAPI, ActivityCompat.OnRequestPermi
         }
     }
 
-    //#region plane feature
-    private void updatePlanesInfo(int maxSize) {
+    //#region ar camera
+    @Override
+    public float[] getCameraPose() {
+        return mCameraPose;
+    }
+    @Override
+    public float[] getCameraViewMatrix() {
+        mCamera.getViewMatrix(mViewMatrix, 0);
+        return mViewMatrix;
+    }
+    @Override
+    public float[] getCameraProjectionMatrix() {
+        if (mCamera != null) mCamera.getProjectionMatrix(mProjMatrix, 0, mNearClipPlane, mFarClipPlane);
+        return mProjMatrix;
+    }
+    @Override
+    public float[] getCameraTexCoords() {
+        updateCameraTexCoords();
+        return mCameraTexCoords;
+    }
+    //#endregion
+
+    //#region plane detection
+    protected boolean checkPlaneType(Plane.Type planeType) {
+        if(mPlaneDetectionMode == CocosARAPIBase.PlaneDetectionMode.ALL)
+            return true;
+
+        if(planeType == Plane.Type.HORIZONTAL_UPWARD_FACING && mPlaneDetectionMode.contains(CocosARAPIBase.PlaneDetectionMode.HORIZONTAL_UPWARD))
+            return true;
+
+        if(planeType == Plane.Type.HORIZONTAL_DOWNWARD_FACING && mPlaneDetectionMode.contains(CocosARAPIBase.PlaneDetectionMode.HORIZONTAL_DOWNWARD))
+            return true;
+
+        if(planeType == Plane.Type.VERTICAL && mPlaneDetectionMode.contains(CocosARAPIBase.PlaneDetectionMode.VERTICAL))
+            return true;
+
+        return false;
+    }
+
+    @Override
+    public void updatePlaneDetection() {
         if (mSession == null || mCamera == null) return;
 
         Collection<Plane> allPlanes = mSession.getAllTrackables(Plane.class);
@@ -392,11 +440,12 @@ public class CocosARCoreAPI implements CocosARAPI, ActivityCompat.OnRequestPermi
 
         Pose cameraPose = mCamera.getDisplayOrientedPose();
         for (Plane plane : allPlanes) {
-            //if (plane.getTrackingState() != TrackingState.TRACKING || plane.getSubsumedBy() != null) {
-            if (plane.getTrackingState() != TrackingState.TRACKING || plane.getType() == Plane.Type.VERTICAL) {
+            if (plane.getTrackingState() != TrackingState.TRACKING) {
               continue;
             }
-            
+
+            if (!checkPlaneType(plane.getType())) continue;
+
             float distance = calculateDistanceToPlane(plane.getCenterPose(), cameraPose);
             if (distance < 0) { // Plane is back-facing.
               continue;
@@ -414,7 +463,7 @@ public class CocosARCoreAPI implements CocosARAPI, ActivityCompat.OnRequestPermi
         );
         
         int size = sortedPlanes.size();
-        size = size > maxSize ? maxSize : size;
+        size = size > mMaxPlaneProcessCount ? mMaxPlaneProcessCount : size;
         int count = 0, offset = 0;
 
         mAddedPlanes.clear();
@@ -448,6 +497,27 @@ public class CocosARCoreAPI implements CocosARAPI, ActivityCompat.OnRequestPermi
 
             ++count;
         }
+    }
+
+    @Override
+    public float[] getAddedPlanesInfo() {
+        return getPlanesInfoFromList(mAddedPlanes);
+    }
+
+    @Override
+    public int[] getRemovedPlanesInfo() {
+        int size = mRemovedPlanes.size();
+        int[] result = new int[size];
+        Integer[] temp = mRemovedPlanes.toArray(new Integer[size]);
+        for (int n = 0; n < size; ++n) {
+            result[n] = temp[n];
+        }
+        return result;
+    }
+
+    @Override
+    public float[] getUpdatedPlanesInfo() {
+        return getPlanesInfoFromList(mUpdatedPlanes);
     }
 
     private float[] getPlanesInfoFromList(List<Integer> planeIndices) {

@@ -24,7 +24,6 @@
 
 package com.cocos.lib;
 
-import com.huawei.hiar.ARAnchor;
 import com.huawei.hiar.AREnginesApk;
 import com.huawei.hiar.ARCamera;
 //import com.huawei.hiar.Config;
@@ -34,11 +33,10 @@ import com.huawei.hiar.ARWorldTrackingConfig;
 //import com.huawei.hiar.DepthPoint;
 import com.huawei.hiar.ARFrame;
 import com.huawei.hiar.ARPose;
-import com.huawei.hiar.ARHitResult;
 //import com.huawei.hiar.InstantPlacementPoint;
 //import com.huawei.hiar.LightEstimate;
 import com.huawei.hiar.ARPlane;
-import com.huawei.hiar.ARPoint;
+import com.huawei.hiar.ARPlane.PlaneType;
 //import com.huawei.hiar.Point.OrientationMode;
 //import com.huawei.hiar.PointCloud;
 import com.huawei.hiar.ARSession;
@@ -47,84 +45,80 @@ import com.huawei.hiar.ARTrackable;
 //import com.huawei.hiar.TrackingState;
 //import com.huawei.hiar.Coordinates2d;
 import com.huawei.hiar.exceptions.ARCameraNotAvailableException;
-import com.huawei.hiar.exceptions.ARNotYetAvailableException;
 import com.huawei.hiar.exceptions.ARUnSupportedConfigurationException;
 import com.huawei.hiar.exceptions.ARUnavailableClientSdkTooOldException;
-import com.huawei.hiar.exceptions.ARUnavailableDeviceNotCompatibleException;
-import com.huawei.hiar.exceptions.ARUnavailableEmuiNotCompatibleException;
 import com.huawei.hiar.exceptions.ARUnavailableServiceApkTooOldException;
 import com.huawei.hiar.exceptions.ARUnavailableServiceNotInstalledException;
 //import com.huawei.hiar.exceptions.UnavailableApkTooOldException;
 //import com.huawei.hiar.exceptions.UnavailableArcoreNotInstalledException;
 //import com.huawei.hiar.exceptions.UnavailableDeviceNotCompatibleException;
 //import com.huawei.hiar.exceptions.UnavailableSdkTooOldException;
-import com.huawei.hiar.exceptions.ARUnavailableUserDeclinedInstallationException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
-import android.content.Context;
+
 import android.app.Activity;
 import android.content.Intent;
 import android.widget.Toast;
-import android.os.Handler;
 import android.util.Log;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
-public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestPermissionsResultCallback*/ {
+public class CocosAREngineAPI extends CocosARAPIBase implements CocosARAPI/*, ActivityCompat.OnRequestPermissionsResultCallback*/ {
     private static final String TAG = CocosAREngineAPI.class.getSimpleName();
     private static CocosAREngineAPI api = null;
     
     private CocosARDisplayRotationHelper mDisplayRotationHelper;
+    private CocosActivity mActivity;
+    private String errorMessage = null;
 
     private ARSession mSession;
     private ARFrame mFrame;
     private ARCamera mCamera;
 
-    private float[] mCameraPose = new float[7];
-    private float[] mViewMatrix = new float[16];
-    private float[] mProjMatrix = new float[16];
+    //private float[] mCameraPose = new float[7];
+    //private float[] mViewMatrix = new float[16];
+    //private float[] mProjMatrix = new float[16];
 
-    //private float[] mQuadCoords = {-1f, -1f, -1f, 1f, 1f, -1f, 1f, 1f};
     private float[] mQuadCoords = {0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f};
-    private float[] mCameraTexCoords = new float[8];
+    //private float[] mCameraTexCoords = new float[8];
     private FloatBuffer mQuadCoordsBuffer;
     private FloatBuffer mTexCoordsBuffer;
+    //private float mNearClipPlane;
+    //private float mFarClipPlane;
 
     // requestInstall(Activity, true) will triggers installation of
     // Google Play Services for AR if necessary.
     private boolean mUserRequestedInstall = true;
     private boolean mActive;
 
-    private int mTextureId = 0;
+    //private int mTextureId = 0;
     private boolean isRemindInstall = false;
 
     // plane feature
     private final static int PLANE_INFOS_SIZE = 12;
-    private int planesMaxSize = 5;
+    //private int planesMaxSize = 5;
     private int planeTag = 0;
     private final HashMap<Integer, ARPlane> planesMap = new HashMap<>();
     private final HashMap<ARPlane, Integer> planesIndexMap = new HashMap<>();
     private List<Integer> mAddedPlanes = new ArrayList<>();
     private List<Integer> mRemovedPlanes = new ArrayList<>();
     private List<Integer> mUpdatedPlanes = new ArrayList<>();
-    private boolean mEnablePlaneFeature = true;
-    private boolean mEnablePolygon = true;
-    private boolean mAutoRemovePlane = true;
+    //private boolean mEnablePlaneFeature = true;
+    //private boolean mEnablePolygon = true;
+    //private boolean mAutoRemovePlane = true;
+    /*
     private enum PlaneDetectionMode {
         HORIZONTAL_UPWARD, HORIZONTAL_DOWNWARD, VERTICAL;
 
         public static final EnumSet<PlaneDetectionMode> ALL = EnumSet.allOf(PlaneDetectionMode.class);
-    }
-    private EnumSet<PlaneDetectionMode> mPlaneDetectionMode = EnumSet.of(PlaneDetectionMode.HORIZONTAL_UPWARD, PlaneDetectionMode.VERTICAL);
+    }*/
+    //private EnumSet<PlaneDetectionMode> mPlaneDetectionMode = EnumSet.of(PlaneDetectionMode.HORIZONTAL_UPWARD, PlaneDetectionMode.VERTICAL);
 
     public static CocosAREngineAPI init() {
         api = new CocosAREngineAPI();
@@ -154,13 +148,7 @@ public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestP
         //api.onDrawFrame();
     }
     public static void update(final CocosAREngineAPI api) {
-        if (api.mSession == null) return;
-        /*
         api.updateSession();
-        api.updateCameraPose();
-        api.updateCameraTexCoords();
-        //*/
-        api.onDrawFrame();
     }
 
     public static boolean checkStart(final CocosAREngineAPI api) {
@@ -193,7 +181,7 @@ public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestP
 
     // plane feature
     public static void updatePlanesInfo(final CocosAREngineAPI api) {
-        api.updatePlanesInfo(api.planesMaxSize);
+        api.updatePlaneDetection();
     }
     public static float[] getAddedPlanesInfo(final CocosAREngineAPI api) {
         return api.getPlanesInfoFromList(api.mAddedPlanes);
@@ -272,6 +260,9 @@ public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestP
     }
 
     private boolean arEngineAbilityCheck() {
+        String brand = android.os.Build.BRAND;
+        if(!(brand.equals("HONOR") || brand.equals("Huawei"))) return false;
+
         Activity activity = GlobalObject.getActivity();
         boolean isInstallArEngineApk = AREnginesApk.isAREngineApkReady(activity);
         if (!isInstallArEngineApk && isRemindInstall) {
@@ -286,28 +277,30 @@ public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestP
         return AREnginesApk.isAREngineApkReady(activity);
     }
 
-    private void startSession() {
-        CocosActivity activity = (CocosActivity)GlobalObject.getActivity();
+    @Override
+    public void startSession() {
+        if (mActivity == null) {
+            mActivity = (CocosActivity) GlobalObject.getActivity();
+        }
+        errorMessage = null;
         if (mSession == null) {
             try {
                 if (!arEngineAbilityCheck()) {
-                    activity.finish();
+                    mActivity.finish();
                     return;
                 }
 
-                mSession = new ARSession(GlobalObject.getActivity());
+                mSession = new ARSession(mActivity);
                 ARWorldTrackingConfig config = new ARWorldTrackingConfig(mSession);
                 config.setFocusMode(ARConfigBase.FocusMode.AUTO_FOCUS);
                 mSession.configure(config);
 
-            } catch (ARUnavailableServiceNotInstalledException e) {
-                e.printStackTrace();
-            } catch (ARUnavailableClientSdkTooOldException e) {
-                e.printStackTrace();
-            } catch (ARUnavailableServiceApkTooOldException e) {
-                e.printStackTrace();
-            } catch (ARUnavailableEmuiNotCompatibleException e) {
-                e.printStackTrace();
+            } catch (Exception capturedException) {
+                setMessageWhenError(capturedException);
+            }
+            if (errorMessage != null) {
+                closeSession();
+                return;
             }
         }
 
@@ -316,13 +309,107 @@ public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestP
         }
         mDisplayRotationHelper.registerDisplayListener();
 
+        initBuffers();
+
+        try {
+            mSession.resume();
+            int width = mActivity.getSurfaceView().getWidth();
+            int height = mActivity.getSurfaceView().getHeight();
+            mDisplayRotationHelper.updateViewportChanged(width, height);
+
+        } catch (ARCameraNotAvailableException e) {
+            mSession = null;
+            return;
+        }
+    }
+
+    @Override
+    public void closeSession() {
+        if (mSession != null) {
+            mDisplayRotationHelper.unregisterDisplayListener();
+            mSession.stop();
+            mSession = null;
+        }
+    }
+
+    @Override
+    public void resumeSession() {
+        if (mActivity == null) {
+            mActivity = (CocosActivity) GlobalObject.getActivity();
+        }
+        errorMessage = null;
+        if (mSession == null) {
+            try {
+                if (!arEngineAbilityCheck()) {
+                    mActivity.finish();
+                    return;
+                }
+
+                mSession = new ARSession(mActivity);
+                ARWorldTrackingConfig config = new ARWorldTrackingConfig(mSession);
+                config.setFocusMode(ARConfigBase.FocusMode.AUTO_FOCUS);
+                mSession.configure(config);
+
+            } catch (Exception capturedException) {
+                setMessageWhenError(capturedException);
+            }
+            if (errorMessage != null) {
+                closeSession();
+                return;
+            }
+        }
+
+        if (mDisplayRotationHelper == null) {
+            mDisplayRotationHelper = new CocosARDisplayRotationHelper(GlobalObject.getActivity());
+        }
+        mDisplayRotationHelper.registerDisplayListener();
+
+        initBuffers();
+
+        try {
+            mSession.resume();
+            int width = mActivity.getSurfaceView().getWidth();
+            int height = mActivity.getSurfaceView().getHeight();
+            mDisplayRotationHelper.updateViewportChanged(width, height);
+
+        } catch (ARCameraNotAvailableException e) {
+            mSession = null;
+            return;
+        }
+    }
+
+    @Override
+    public void pauseSession() {
+        if (mSession != null) {
+            mDisplayRotationHelper.unregisterDisplayListener();
+            mSession.pause();
+        }
+    }
+
+    @Override
+    public void updateSession() {
+        if (mSession == null) return;
+
+        mDisplayRotationHelper.updateDisplayGeometry(api);
+
+        try {
+            mSession.setCameraTextureName(mTextureId);
+            mFrame = mSession.update();
+            mCamera = mFrame.getCamera();
+            updateCameraPose();
+        } catch (ARCameraNotAvailableException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void initBuffers() {
         /*
-        The reason for creating a ByteBuffer first is that 
-        you want to use the allocateDirect call to create a direct byte buffer, 
-        which benefits from the accelerated operations. 
-        You then create a FloatBuffer from this that shares the same memory. 
-        The FloatBuffer doesn't itself have an allocateDirect method for some reason, 
-        which is why you have to go via ByteBuffer. 
+        The reason for creating a ByteBuffer first is that
+        you want to use the allocateDirect call to create a direct byte buffer,
+        which benefits from the accelerated operations.
+        You then create a FloatBuffer from this that shares the same memory.
+        The FloatBuffer doesn't itself have an allocateDirect method for some reason,
+        which is why you have to go via ByteBuffer.
         */
         ByteBuffer quadCoordsByteBuffer = ByteBuffer.allocateDirect(32);
         quadCoordsByteBuffer.order(ByteOrder.nativeOrder());
@@ -332,64 +419,20 @@ public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestP
         ByteBuffer texCoordsByteBuffer = ByteBuffer.allocateDirect(32);
         texCoordsByteBuffer.order(ByteOrder.nativeOrder());
         mTexCoordsBuffer = texCoordsByteBuffer.asFloatBuffer();
+    }
 
-        try {
-            mSession.resume();
-            //CocosActivity activity = (CocosActivity)GlobalObject.getActivity();
-            int width = activity.getSurfaceView().getWidth();
-            int height = activity.getSurfaceView().getHeight();
-            mDisplayRotationHelper.updateViewportChanged(width, height);
-
-        } catch (ARCameraNotAvailableException e) {
-            mSession = null;
-            return;
+    private void setMessageWhenError(Exception catchException) {
+        if (catchException instanceof ARUnavailableServiceNotInstalledException) {
+            mActivity.startActivity(new Intent(mActivity, CocosAREngineServerConnectActivity.class));
+        } else if (catchException instanceof ARUnavailableServiceApkTooOldException) {
+            errorMessage = "Please update HuaweiARService.apk";
+        } else if (catchException instanceof ARUnavailableClientSdkTooOldException) {
+            errorMessage = "Please update this app";
+        } else if (catchException instanceof ARUnSupportedConfigurationException) {
+            errorMessage = "The configuration is not supported by the device!";
+        } else {
+            errorMessage = "unknown exception throws!";
         }
-    }
-
-    private void closeSession() {
-        mSession.stop();
-        mSession = null;
-    }
-
-    private void pauseSession() {
-        mSession.pause();
-        mDisplayRotationHelper.unregisterDisplayListener();
-    }
-
-    private void updateSession() {
-        mDisplayRotationHelper.updateDisplayGeometry(api);
-
-        mSession.setCameraTextureName(mTextureId);
-
-        try {
-            mFrame = mSession.update();
-        } catch (ARCameraNotAvailableException e) {
-            e.printStackTrace();
-        }
-
-        mCamera = mFrame.getCamera();
-        /*
-        ARTrackable.TrackingState state = mCamera.getTrackingState();
-        if(state == ARTrackable.TrackingState.PAUSED || state == ARTrackable.TrackingState.STOPPED) {
-            mSession.resume();
-        }//*/
-    }
-
-    private void onDrawFrame() {
-        // Log.d(TAG, "onDrawFrame setCameraTextureName"+textureId);
-        /*
-        if (mDisplayRotationUtil.getDeviceRotation()) {
-          mDisplayRotationUtil.updateArSessionDisplayGeometry(mSession);
-        }
-        //*/
-        mDisplayRotationHelper.updateDisplayGeometry(api);
-
-        mSession.setCameraTextureName(mTextureId);
-
-        mFrame = mSession.update();
-        mCamera = mFrame.getCamera();
-
-        updateCameraPose();
     }
 
     /*
@@ -411,40 +454,55 @@ public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestP
         }//
     }*/
 
-    //#region plane feature
+    //#region ar session
 
-    /**
-     *
-     * @param flag HORIZONTAL_UPWARD(1) HORIZONTAL_DOWNWARD(2) VERTICAL(4)
-     */
-    private void SetPlaneDetectionMode(int flag) {
-        if((flag & 1) == 1) mPlaneDetectionMode.add(PlaneDetectionMode.HORIZONTAL_UPWARD);
+    //#endregion
 
-        if((flag & 2) == 1) mPlaneDetectionMode.add(PlaneDetectionMode.HORIZONTAL_DOWNWARD);
-
-        if((flag & 4) == 1) mPlaneDetectionMode.add(PlaneDetectionMode.VERTICAL);
+    //#region ar camera
+    @Override
+    public float[] getCameraPose() {
+        return mCameraPose;
     }
+    @Override
+    public float[] getCameraViewMatrix() {
+        mCamera.getViewMatrix(mViewMatrix, 0);
+        return mViewMatrix;
+    }
+    @Override
+    public float[] getCameraProjectionMatrix() {
+        if (mCamera != null) mCamera.getProjectionMatrix(mProjMatrix, 0, mNearClipPlane, mFarClipPlane);
+        return mProjMatrix;
+    }
+    @Override
+    public float[] getCameraTexCoords() {
+        updateCameraTexCoords();
+        return mCameraTexCoords;
+    }
+    //#endregion
 
-    private boolean filterPlaneType(ARPlane.PlaneType planeType) {
+    //#region plane detection
+
+    protected boolean checkPlaneType(ARPlane.PlaneType planeType) {
         if(planeType == ARPlane.PlaneType.UNKNOWN_FACING)
             return false;
 
-        if(mPlaneDetectionMode == PlaneDetectionMode.ALL)
+        if(mPlaneDetectionMode == CocosARAPIBase.PlaneDetectionMode.ALL)
             return true;
 
-        if(planeType == ARPlane.PlaneType.HORIZONTAL_UPWARD_FACING && mPlaneDetectionMode.contains(PlaneDetectionMode.HORIZONTAL_UPWARD))
+        if(planeType == ARPlane.PlaneType.HORIZONTAL_UPWARD_FACING && mPlaneDetectionMode.contains(CocosARAPIBase.PlaneDetectionMode.HORIZONTAL_UPWARD))
             return true;
 
-        if(planeType == ARPlane.PlaneType.HORIZONTAL_DOWNWARD_FACING && mPlaneDetectionMode.contains(PlaneDetectionMode.HORIZONTAL_DOWNWARD))
+        if(planeType == ARPlane.PlaneType.HORIZONTAL_DOWNWARD_FACING && mPlaneDetectionMode.contains(CocosARAPIBase.PlaneDetectionMode.HORIZONTAL_DOWNWARD))
             return true;
 
-        if(planeType == ARPlane.PlaneType.VERTICAL_FACING && mPlaneDetectionMode.contains(PlaneDetectionMode.VERTICAL))
+        if(planeType == ARPlane.PlaneType.VERTICAL_FACING && mPlaneDetectionMode.contains(CocosARAPIBase.PlaneDetectionMode.VERTICAL))
             return true;
 
         return false;
     }
 
-    private void updatePlanesInfo(int maxSize) {
+    @Override
+    public void updatePlaneDetection() {
         if (mSession == null || mCamera == null) return;
 
         Collection<ARPlane> allPlanes = mSession.getAllTrackables(ARPlane.class);
@@ -460,7 +518,7 @@ public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestP
               continue;
             }
             
-            if (!filterPlaneType(plane.getType())) continue;
+            if (!checkPlaneType(plane.getType())) continue;
 
             float distance = calculateDistanceToPlane(plane.getCenterPose(), cameraPose);
             if (distance < 0) { // Plane is back-facing.
@@ -480,7 +538,7 @@ public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestP
         
         //*
         int size = sortedPlanes.size();
-        size = size > maxSize ? maxSize : size;
+        size = size > mMaxPlaneProcessCount ? mMaxPlaneProcessCount : size;
         int count = 0, offset = 0;
 
         mAddedPlanes.clear();
@@ -488,7 +546,7 @@ public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestP
         mRemovedPlanes.clear();
 
         for (SortablePlane sortedPlane : sortedPlanes) {
-            if (count >= size) continue;
+            if (count >= size) break;
 
             ARPlane plane = sortedPlane.plane;
             Integer planeIndex = planesIndexMap.get(plane);
@@ -513,20 +571,36 @@ public class CocosAREngineAPI implements CocosARAPI/*, ActivityCompat.OnRequestP
 
             ++count;
         }
-        //*/
+    }
+
+    @Override
+    public float[] getAddedPlanesInfo() {
+        return getPlanesInfoFromList(mAddedPlanes);
+    }
+
+    @Override
+    public int[] getRemovedPlanesInfo() {
+        int size = mRemovedPlanes.size();
+        int[] result = new int[size];
+        Integer[] temp = mRemovedPlanes.toArray(new Integer[size]);
+        for (int n = 0; n < size; ++n) {
+            result[n] = temp[n];
+        }
+        return result;
+    }
+
+    @Override
+    public float[] getUpdatedPlanesInfo() {
+        return getPlanesInfoFromList(mUpdatedPlanes);
     }
 
     private float[] getPlanesInfoFromList(List<Integer> planeIndices) {
         float[] planesInfo = new float[PLANE_INFOS_SIZE * planeIndices.size()];
         int offset = 0;
-        int maxSize = 5;
-        int n = 0;
         for (int index : planeIndices) {
-            //if (n >= maxSize) break;
             ARPlane plane = planesMap.get(index);
             copyPlaneToArray(plane, index, planesInfo, offset);
             offset += PLANE_INFOS_SIZE;
-            ++n;
         }
         return planesInfo;
     }

@@ -28,18 +28,15 @@
 #include "ar/ARModule.h"
 
 #if CC_PLATFORM == CC_PLATFORM_ANDROID
-
-#include "ar/android/ARCoreAPIImpl.h"
-using ARCoreImpl = cc::ar::ARCoreAPIImpl;
-
-#include "ar/android/AREngineAPIImpl.h"
-using AREngineImpl = cc::ar::AREngineAPIImpl;
-
+#include "ar/android/ARAndroidAPIImpl.h"
+using ARAPIImpl = cc::ar::ARAndroidAPIImpl;
+//#include "ar/android/ARCoreAPIImpl.h"
+//using ARAPIImpl = cc::ar::ARCoreAPIImpl;
+//#include "ar/android/AREngineAPIImpl.h"
+//using ARAPIImpl = cc::ar::AREngineAPIImpl;
 #elif CC_PLATFORM == CC_PLATFORM_MAC_IOS
-
 #include "ar/ios/ARKitAPIImpl.h"
 using ARAPIImpl = cc::ar::ARKitAPIImpl;
-
 #elif CC_PLATFORM == CC_PLATFORM_WINDOWS
 #include "ar/IARAPI.h"
 #endif
@@ -51,10 +48,7 @@ namespace ar {
 
 ARModule::ARModule() {
 #if CC_PLATFORM == CC_PLATFORM_ANDROID
-    _impl = std::make_unique<AREngineImpl>();
-    // check support AREngine
-
-
+    _impl = std::make_unique<ARAPIImpl>();
     arModuleInstance.reset(this);
 #elif CC_PLATFORM == CC_PLATFORM_MAC_IOS
     _impl = std::make_unique<ARAPIImpl>();

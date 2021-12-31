@@ -27,7 +27,10 @@ cc_set_if_undefined(USE_JOB_SYSTEM_TASKFLOW  OFF)
 cc_set_if_undefined(USE_JOB_SYSTEM_TBB       OFF)
 cc_set_if_undefined(USE_PHYSICS_PHYSX        OFF)
 cc_set_if_undefined(USE_MODULES              OFF)
-cc_set_if_undefined(USE_AR_MODULE            OFF)
+# cc_set_if_undefined(USE_AR_MODULE            OFF)
+cc_set_if_undefined(USE_AR_AUTO              ON)
+cc_set_if_undefined(USE_AR_CORE              OFF)
+cc_set_if_undefined(USE_AR_ENGINE            OFF)
 
 if(ANDROID OR WINDOWS)
     cc_set_if_undefined(CC_USE_GLES3 ON)
@@ -51,6 +54,10 @@ if(USE_PHYSICS_PHYSX)
         set(USE_PHYSICS_PHYSX OFF)
         message(AUTHOR_WARNING "Native PhysX does not support Google Android X86")
     endif()
+endif()
+
+if(USE_AR_AUTO OR USE_AR_CORE OR USE_AR_ENGINE)
+    cc_set_if_undefined(USE_AR_MODULE ON)
 endif()
 
 if(USE_SE_JSC)
@@ -119,6 +126,9 @@ cc_inspect_values(
     USE_JOB_SYSTEM_TBB
     USE_JOB_SYSTEM_TASKFLOW
     USE_AR_MODULE
+    USE_AR_AUTO
+    USE_AR_CORE
+    USE_AR_ENGINE
 )
 
 ################################# external source code ################################
@@ -1836,6 +1846,8 @@ if(USE_AR_MODULE)
     )
     if(ANDROID)
     cocos_source_files(
+        cocos/ar/android/ARAndroidAPIImpl.cpp
+        cocos/ar/android/ARAndroidAPIImpl.h
         cocos/ar/android/ARCoreAPIImpl.cpp
         cocos/ar/android/ARCoreAPIImpl.h
         cocos/ar/android/AREngineAPIImpl.cpp
@@ -2001,6 +2013,9 @@ function(cc_apply_definations target)
         $<IF:$<BOOL:${USE_JOB_SYSTEM_TASKFLOW}>,USE_JOB_SYSTEM_TASKFLOW=1,USE_JOB_SYSTEM_TASKFLOW=0>
         $<IF:$<BOOL:${USE_PHYSICS_PHYSX}>,USE_PHYSICS_PHYSX=1,USE_PHYSICS_PHYSX=0>
         $<IF:$<BOOL:${USE_AR_MODULE}>,USE_AR_MODULE=1,USE_AR_MODULE=0>
+        $<IF:$<BOOL:${USE_AR_AUTO}>,USE_AR_AUTO=1,USE_AR_AUTO=0>
+        $<IF:$<BOOL:${USE_AR_CORE}>,USE_AR_CORE=1,USE_AR_CORE=0>
+        $<IF:$<BOOL:${USE_AR_ENGINE}>,USE_AR_ENGINE=1,USE_AR_ENGINE=0>
         $<$<BOOL:${USE_SE_JSC}>:SCRIPT_ENGINE_TYPE=3>
         $<$<CONFIG:Debug>:CC_DEBUG=1>
     )
