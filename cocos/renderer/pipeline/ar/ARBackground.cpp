@@ -136,7 +136,6 @@ void ARBackground::activate(RenderPipeline *pipeline, gfx::Device *dev) {
             varying vec2 v_texCoord;
             void main() {
                 v_texCoord = (u_CoordMatrix * vec4(a_texCoord, 0, 1)).xy;
-                //v_texCoord = vec2(1.0 - v_texCoord.x, v_texCoord.y);
                 gl_Position = u_MVP * vec4(a_position, 0, 1);
             }
         )",
@@ -315,7 +314,8 @@ void ARBackground::render(scene::Camera *camera, gfx::RenderPass *renderPass, gf
     //*
     auto *const armodule = cc::ar::ARModule::get();
     if (!armodule) return;
-    if (!armodule->checkStart()) return;
+    int apiState = armodule->getAPIState();
+    if (apiState < 0) return;
 
 #if CC_PLATFORM == CC_PLATFORM_ANDROID
     if (!_setTexFlag) {
@@ -368,21 +368,29 @@ void ARBackground::render(scene::Camera *camera, gfx::RenderPass *renderPass, gf
     _descriptorSet->update();
 #endif
 
-    //*
     auto *const data = armodule->getCameraTexCoords();
 #if CC_PLATFORM == CC_PLATFORM_ANDROID
-    float vertices[] = {-1, -1, data[0], data[1],
-                        -1, 1, data[2], data[3],
-                        1, -1, data[4], data[5],
-                        1, 1, data[6], data[7]};
+    if(apiState > 1) {
+        float vertices[] = {-1, -1, data[2], data[3],
+                            -1, 1, data[0], data[1],
+                            1, -1, data[6], data[7],
+                            1, 1, data[4], data[5]};
+        _vertexBuffer->update(vertices, sizeof(vertices));
+    } else {
+        float vertices[] = {-1, -1, data[0], data[1],
+                            -1, 1, data[2], data[3],
+                            1, -1, data[4], data[5],
+                            1, 1, data[6], data[7]};
+        _vertexBuffer->update(vertices, sizeof(vertices));
+    }
 #elif CC_PLATFORM == CC_PLATFORM_MAC_IOS
     float vertices[] = {-1, -1, data[2], data[3],
                         -1, 1, data[0], data[1],
                         1, -1, data[6], data[7],
                         1, 1, data[4], data[5]};
-#endif
     _vertexBuffer->update(vertices, sizeof(vertices));
-
+#endif
+    
     gfx::PipelineStateInfo pipelineInfo;
     pipelineInfo.shader         = _shader;
     pipelineInfo.pipelineLayout = _pipelineLayout;

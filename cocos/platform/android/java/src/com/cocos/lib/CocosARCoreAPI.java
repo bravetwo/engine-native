@@ -66,7 +66,7 @@ import android.util.Log;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-public class CocosARCoreAPI extends CocosARAPIBase  implements CocosARAPI, ActivityCompat.OnRequestPermissionsResultCallback {
+public class CocosARCoreAPI extends CocosARAPIBase implements ActivityCompat.OnRequestPermissionsResultCallback {
     private static final String TAG = CocosARCoreAPI.class.getSimpleName();
     private static CocosARCoreAPI api = null;
     
@@ -76,12 +76,12 @@ public class CocosARCoreAPI extends CocosARAPIBase  implements CocosARAPI, Activ
     private Frame mFrame;
     private Camera mCamera;
 
-    private float[] mCameraPose = new float[7];
-    private float[] mViewMatrix = new float[16];
-    private float[] mProjMatrix = new float[16];
+    //private float[] mCameraPose = new float[7];
+    //private float[] mViewMatrix = new float[16];
+    //private float[] mProjMatrix = new float[16];
 
     private float[] mQuadCoords = {-1f, -1f, -1f, 1f, 1f, -1f, 1f, 1f};
-    private float[] mCameraTexCoords = new float[8];
+    //private float[] mCameraTexCoords = new float[8];
 
     // requestInstall(Activity, true) will triggers installation of
     // Google Play Services for AR if necessary.
@@ -125,13 +125,13 @@ public class CocosARCoreAPI extends CocosARAPIBase  implements CocosARAPI, Activ
     public static void beforeUpdate(final CocosARCoreAPI api) {
         if (api.mSession == null) return;
         api.updateSession();
-        api.updateCameraPose();
-        api.updateCameraTexCoords();
+        //api.updateCameraPose();
+        //api.updateCameraTexCoords();
     }
 
     public static void update(final CocosARCoreAPI api) {
         if (api.mSession == null) return;
-        //api.updateSession();
+        api.updateSession();
         //api.updateCameraPose();
         //api.updateCameraTexCoords();
     }
@@ -144,7 +144,8 @@ public class CocosARCoreAPI extends CocosARAPIBase  implements CocosARAPI, Activ
     }
 
     public static void setCameraTextureName(final CocosARCoreAPI api, int id) {
-        api.mSession.setCameraTextureName(id);
+        //api.mSession.setCameraTextureName(id);
+        api.mTextureId = id;
     }
 
     public static float[] getCameraPose(final CocosARCoreAPI api) {
@@ -198,7 +199,8 @@ public class CocosARCoreAPI extends CocosARAPIBase  implements CocosARAPI, Activ
         return api.mUpdatedPlanes.size();
     }
 
-    // for CocosARDisplayRotationHelper 
+    // for CocosARDisplayRotationHelper
+    @Override
     public void setDisplayGeometry(int displayRotation, int width, int height) {
         mSession.setDisplayGeometry(displayRotation, width, height);
     }
@@ -361,15 +363,18 @@ public class CocosARCoreAPI extends CocosARAPIBase  implements CocosARAPI, Activ
 
     @Override
     public void updateSession() {
-        mDisplayRotationHelper.updateDisplayGeometry(api);
+        mDisplayRotationHelper.updateDisplayGeometry(this);
 
         try {
+            mSession.setCameraTextureName(mTextureId);
             mFrame = mSession.update();
         } catch (CameraNotAvailableException e) {
             e.printStackTrace();
         }
 
         mCamera = mFrame.getCamera();
+        updateCameraPose();
+        updateCameraTexCoords();
     }
 
     @Override
@@ -406,8 +411,15 @@ public class CocosARCoreAPI extends CocosARAPIBase  implements CocosARAPI, Activ
     }
     @Override
     public float[] getCameraTexCoords() {
-        updateCameraTexCoords();
+        //updateCameraTexCoords();
         return mCameraTexCoords;
+    }
+    @Override
+    public int getAPIState() {
+        if (mSession != null && mCamera != null) {
+            return 1;
+        }
+        return -1;
     }
     //#endregion
 

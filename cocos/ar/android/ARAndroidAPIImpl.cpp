@@ -29,9 +29,8 @@
 #include "platform/java/jni/JniImp.h"
 #include "renderer/gfx-base/GFXDevice.h"
 #include "base/threading/MessageQueue.h"
-
 #ifndef JCLS_ARAPI
-#ifdef USE_AR_AUTO
+#if USE_AR_AUTO
 #define JCLS_ARAPI "com/cocos/lib/CocosARAutoImpl"
 #elif USE_AR_ENGINE
 #define JCLS_ARAPI "com/cocos/lib/CocosAREngineAPI"
@@ -193,23 +192,23 @@ void ARAndroidAPIImpl::update() {
     }
 }
 
-bool ARAndroidAPIImpl::checkStart() {
+int ARAndroidAPIImpl::getAPIState() {
     if(_impl != nullptr) {
         JniMethodInfo methodInfo;
         if (JniHelper::getStaticMethodInfo(methodInfo,
                                             JCLS_ARAPI,
-                                            "checkStart",
-                                            "(" JARG_ARAPI ")Z")) {
-            auto check = static_cast<bool>(methodInfo.env->CallStaticBooleanMethod(
+                                            "getAPIState",
+                                            "(" JARG_ARAPI ")I")) {
+            auto result = static_cast<int>(methodInfo.env->CallStaticIntMethod(
                     methodInfo.classID,
                     methodInfo.methodID,
                     _impl
             ));
             methodInfo.env->DeleteLocalRef(methodInfo.classID);
-            return check;
+            return result;
         }
     }
-    return false;
+    return -1;
 }
 
 void ARAndroidAPIImpl::setCameraTextureName(int id) {
@@ -402,7 +401,7 @@ void ARAndroidAPIImpl::updatePlanesInfo() {
         JniMethodInfo methodInfo;
         if (JniHelper::getStaticMethodInfo(methodInfo,
                                             JCLS_ARAPI,
-                                            "updatePlanesInfo",
+                                            "updatePlaneDetection",
                                             "(" JARG_ARAPI ")V")) {
             methodInfo.env->CallStaticVoidMethod(
                     methodInfo.classID,
@@ -485,13 +484,17 @@ float* ARAndroidAPIImpl::getUpdatedPlanesInfo() {
                     _impl
             );
             jsize len = methodInfo.env->GetArrayLength(array);
-            if (len <= 5 * 12) {
-                jfloat* elems = methodInfo.env->GetFloatArrayElements(array, 0);
+            //if (len <= 5 * 12) {
+                jfloat* elems = methodInfo.env->GetFloatArrayElements(array, nullptr);
                 if (elems) {
-                    memcpy(_updatedPlanesInfo, elems, sizeof(float) * len);
+                    auto* info = new float[len];
+                    _infoLength = len;
+                    memcpy(info, elems, sizeof(float) * len);
+                    //memcpy(_updatedPlanesInfo, elems, sizeof(float) * len);
                     methodInfo.env->ReleaseFloatArrayElements(array, elems, 0);
+                    _updatedPlanesInfo = info;
                 };
-            }
+            //}
             methodInfo.env->DeleteLocalRef(methodInfo.classID);
         }
     }

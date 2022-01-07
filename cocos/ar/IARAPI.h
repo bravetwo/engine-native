@@ -49,7 +49,7 @@ public:
     virtual void pause() = 0;
     virtual void beforeUpdate() {}
     virtual void update() = 0;
-    virtual bool checkStart() = 0;
+    virtual int getAPIState() = 0;
 
     virtual float* getCameraPose() = 0;
     virtual float* getCameraViewMatrix() = 0;

@@ -53,6 +53,7 @@ public:
     void beforeUpdate();
     void update();
     bool checkStart();
+    int getAPIState();
 
     float* getCameraPose() const;
     float* getCameraViewMatrix() const;

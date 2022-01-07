@@ -87,7 +87,7 @@ public class CocosARDisplayRotationHelper implements DisplayListener {
      *
      * session the object to update if display geometry changed.
      */
-    public void updateDisplayGeometry(CocosARAPI api) {
+    public void updateDisplayGeometry(CocosARAPIBase api) {
         if (mViewportChanged) {
             int displayRotation = mDisplay.getRotation();
             api.setDisplayGeometry(displayRotation, mViewportWidth, mViewportHeight);

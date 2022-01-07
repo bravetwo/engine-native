@@ -40,6 +40,7 @@ public:
     void pause() override;
     void update() override;
     bool checkStart() override;
+    int getAPIType() override;
 
     void setCameraTextureName(int id) override;
     float* getCameraPose() override;

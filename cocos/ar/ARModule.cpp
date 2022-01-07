@@ -30,10 +30,6 @@
 #if CC_PLATFORM == CC_PLATFORM_ANDROID
 #include "ar/android/ARAndroidAPIImpl.h"
 using ARAPIImpl = cc::ar::ARAndroidAPIImpl;
-//#include "ar/android/ARCoreAPIImpl.h"
-//using ARAPIImpl = cc::ar::ARCoreAPIImpl;
-//#include "ar/android/AREngineAPIImpl.h"
-//using ARAPIImpl = cc::ar::AREngineAPIImpl;
 #elif CC_PLATFORM == CC_PLATFORM_MAC_IOS
 #include "ar/ios/ARKitAPIImpl.h"
 using ARAPIImpl = cc::ar::ARKitAPIImpl;
@@ -47,10 +43,7 @@ namespace cc {
 namespace ar {
 
 ARModule::ARModule() {
-#if CC_PLATFORM == CC_PLATFORM_ANDROID
-    _impl = std::make_unique<ARAPIImpl>();
-    arModuleInstance.reset(this);
-#elif CC_PLATFORM == CC_PLATFORM_MAC_IOS
+#if CC_PLATFORM == CC_PLATFORM_ANDROID || CC_PLATFORM == CC_PLATFORM_MAC_IOS
     _impl = std::make_unique<ARAPIImpl>();
     arModuleInstance.reset(this);
 #endif
@@ -79,15 +72,17 @@ void ARModule::onPause() {
 }
 
 void ARModule::beforeUpdate() {
-    _impl->beforeUpdate();
+    //_impl->beforeUpdate();
+    //_impl->update();
 }
 
 void ARModule::update() {
     _impl->update();
 }
 
-bool ARModule::checkStart() {
-    return _impl->checkStart();
+// -1: not started, 0: arkit, 1: arcore, 2: arengine
+int ARModule::getAPIState() {
+    return _impl->getAPIState();
 }
 
 void ARModule::setCameraTextureName(int id) {
@@ -121,10 +116,12 @@ int ARModule::getAddedPlanesCount() const {
     return _impl->getInfoLength() / 12;
 }
 int ARModule::getRemovedPlanesCount() const {
-    return _impl->getRemovedPlanesCount();
+    //return _impl->getRemovedPlanesCount();
+    return 0;
 }
 int ARModule::getUpdatedPlanesCount() const {
-    return _impl->getUpdatedPlanesCount();
+    //return _impl->getUpdatedPlanesCount();
+    return _impl->getInfoLength() / 12;;
 }
 void ARModule::updatePlanesInfo() const {
     _impl->updatePlanesInfo();

@@ -69,7 +69,7 @@ import android.content.Intent;
 import android.widget.Toast;
 import android.util.Log;
 
-public class CocosAREngineAPI extends CocosARAPIBase implements CocosARAPI/*, ActivityCompat.OnRequestPermissionsResultCallback*/ {
+public class CocosAREngineAPI extends CocosARAPIBase {
     private static final String TAG = CocosAREngineAPI.class.getSimpleName();
     private static CocosAREngineAPI api = null;
     
@@ -89,8 +89,6 @@ public class CocosAREngineAPI extends CocosARAPIBase implements CocosARAPI/*, Ac
     //private float[] mCameraTexCoords = new float[8];
     private FloatBuffer mQuadCoordsBuffer;
     private FloatBuffer mTexCoordsBuffer;
-    //private float mNearClipPlane;
-    //private float mFarClipPlane;
 
     // requestInstall(Activity, true) will triggers installation of
     // Google Play Services for AR if necessary.
@@ -109,16 +107,6 @@ public class CocosAREngineAPI extends CocosARAPIBase implements CocosARAPI/*, Ac
     private List<Integer> mAddedPlanes = new ArrayList<>();
     private List<Integer> mRemovedPlanes = new ArrayList<>();
     private List<Integer> mUpdatedPlanes = new ArrayList<>();
-    //private boolean mEnablePlaneFeature = true;
-    //private boolean mEnablePolygon = true;
-    //private boolean mAutoRemovePlane = true;
-    /*
-    private enum PlaneDetectionMode {
-        HORIZONTAL_UPWARD, HORIZONTAL_DOWNWARD, VERTICAL;
-
-        public static final EnumSet<PlaneDetectionMode> ALL = EnumSet.allOf(PlaneDetectionMode.class);
-    }*/
-    //private EnumSet<PlaneDetectionMode> mPlaneDetectionMode = EnumSet.of(PlaneDetectionMode.HORIZONTAL_UPWARD, PlaneDetectionMode.VERTICAL);
 
     public static CocosAREngineAPI init() {
         api = new CocosAREngineAPI();
@@ -214,7 +202,8 @@ public class CocosAREngineAPI extends CocosARAPIBase implements CocosARAPI/*, Ac
         return api.mUpdatedPlanes.size();
     }
 
-    // for CocosARDisplayRotationHelper 
+    // for CocosARDisplayRotationHelper
+    @Override
     public void setDisplayGeometry(int displayRotation, int width, int height) {
         mSession.setDisplayGeometry(displayRotation, width, height);
     }
@@ -260,9 +249,6 @@ public class CocosAREngineAPI extends CocosARAPIBase implements CocosARAPI/*, Ac
     }
 
     private boolean arEngineAbilityCheck() {
-        String brand = android.os.Build.BRAND;
-        if(!(brand.equals("HONOR") || brand.equals("Huawei"))) return false;
-
         Activity activity = GlobalObject.getActivity();
         boolean isInstallArEngineApk = AREnginesApk.isAREngineApkReady(activity);
         if (!isInstallArEngineApk && isRemindInstall) {
@@ -316,7 +302,6 @@ public class CocosAREngineAPI extends CocosARAPIBase implements CocosARAPI/*, Ac
             int width = mActivity.getSurfaceView().getWidth();
             int height = mActivity.getSurfaceView().getHeight();
             mDisplayRotationHelper.updateViewportChanged(width, height);
-
         } catch (ARCameraNotAvailableException e) {
             mSession = null;
             return;
@@ -390,7 +375,7 @@ public class CocosAREngineAPI extends CocosARAPIBase implements CocosARAPI/*, Ac
     public void updateSession() {
         if (mSession == null) return;
 
-        mDisplayRotationHelper.updateDisplayGeometry(api);
+        mDisplayRotationHelper.updateDisplayGeometry(this);
 
         try {
             mSession.setCameraTextureName(mTextureId);
@@ -400,6 +385,14 @@ public class CocosAREngineAPI extends CocosARAPIBase implements CocosARAPI/*, Ac
         } catch (ARCameraNotAvailableException e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public int getAPIState() {
+        if (mSession != null && mCamera != null) {
+            return 2;
+        }
+        return -1;
     }
 
     private void initBuffers() {

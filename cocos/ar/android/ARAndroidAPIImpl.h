@@ -43,7 +43,7 @@ public:
     void resume() override;
     void pause() override;
     void update() override;
-    bool checkStart() override;
+    int getAPIState() override;
     void beforeUpdate() override;
 
     float* getCameraPose() override;
@@ -74,7 +74,8 @@ protected:
     //float* _addedPlanesInfo = new float[60];
     float* _addedPlanesInfo = nullptr;
     int* _removedPlanesInfo = new int[5];
-    float* _updatedPlanesInfo = new float[60];
+    //'float* _updatedPlanesInfo = new float[60];
+    float* _updatedPlanesInfo = nullptr;
     int _infoLength = 0;
 
     Semaphore _frameBoundarySemaphore{1};

@@ -27,8 +27,6 @@ package com.cocos.lib;
 import java.util.EnumSet;
 
 public abstract class CocosARAPIBase {
-    protected int mSessionStartFlag = -1;
-
     // ar camera
     protected int mTextureId = 0;
     protected float mNearClipPlane = 0.01F;
@@ -54,11 +52,14 @@ public abstract class CocosARAPIBase {
     public abstract void resumeSession();
     public abstract void pauseSession();
     public abstract void updateSession();
+    // -1: not started, 0: arkit, 1: arcore, 2: arengine
+    public abstract int getAPIState();
 
     public abstract float[] getCameraPose();
     public abstract float[] getCameraViewMatrix();
     public abstract float[] getCameraProjectionMatrix();
     public abstract float[] getCameraTexCoords();
+    public abstract void setDisplayGeometry(int displayRotation, int width, int height);
     public void setCameraTextureName(int id) {
         mTextureId = id;
     }
@@ -73,6 +74,7 @@ public abstract class CocosARAPIBase {
      * @param mode HORIZONTAL_UPWARD(1) HORIZONTAL_DOWNWARD(2) VERTICAL(4)
      */
     public void setPlaneDetectionMode(int mode) {
+        mPlaneDetectionMode.removeAll(PlaneDetectionMode.ALL);
         if((mode & 1) == 1) mPlaneDetectionMode.add(PlaneDetectionMode.HORIZONTAL_UPWARD);
 
         if((mode & 2) == 1) mPlaneDetectionMode.add(PlaneDetectionMode.HORIZONTAL_DOWNWARD);

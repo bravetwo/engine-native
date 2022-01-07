@@ -56,8 +56,8 @@ public class CocosARAutoImpl {
         api.updateSession();
     }
 
-    public static boolean checkStart(final CocosARAutoImpl impl) {
-        return false;
+    public static int getAPIState(final CocosARAutoImpl impl) {
+        return api.getAPIState();
     }
 
     public boolean isHuaweiBrand() {

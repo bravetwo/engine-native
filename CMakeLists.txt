@@ -27,7 +27,7 @@ cc_set_if_undefined(USE_JOB_SYSTEM_TASKFLOW  OFF)
 cc_set_if_undefined(USE_JOB_SYSTEM_TBB       OFF)
 cc_set_if_undefined(USE_PHYSICS_PHYSX        OFF)
 cc_set_if_undefined(USE_MODULES              OFF)
-# cc_set_if_undefined(USE_AR_MODULE            OFF)
+cc_set_if_undefined(USE_AR_MODULE            OFF)
 cc_set_if_undefined(USE_AR_AUTO              ON)
 cc_set_if_undefined(USE_AR_CORE              OFF)
 cc_set_if_undefined(USE_AR_ENGINE            OFF)
@@ -56,9 +56,9 @@ if(USE_PHYSICS_PHYSX)
     endif()
 endif()
 
-if(USE_AR_AUTO OR USE_AR_CORE OR USE_AR_ENGINE)
-    cc_set_if_undefined(USE_AR_MODULE ON)
-endif()
+# if(USE_AR_AUTO OR USE_AR_CORE OR USE_AR_ENGINE)
+#     cc_set_if_undefined(USE_AR_MODULE ON)
+# endif()
 
 if(USE_SE_JSC)
     set(USE_SE_V8 OFF)
@@ -1848,10 +1848,6 @@ if(USE_AR_MODULE)
     cocos_source_files(
         cocos/ar/android/ARAndroidAPIImpl.cpp
         cocos/ar/android/ARAndroidAPIImpl.h
-        cocos/ar/android/ARCoreAPIImpl.cpp
-        cocos/ar/android/ARCoreAPIImpl.h
-        cocos/ar/android/AREngineAPIImpl.cpp
-        cocos/ar/android/AREngineAPIImpl.h
     )
     elseif(IOS)
     cocos_source_files(
