@@ -64,7 +64,7 @@ public:
     virtual int getUpdatedPlanesCount() = 0;
     virtual void updatePlanesInfo() = 0;
     virtual float* getAddedPlanesInfo() = 0;
-    virtual int* getRemovedPlanesInfo() = 0;
+    virtual unsigned long* getRemovedPlanesInfo() = 0;
     virtual float* getUpdatedPlanesInfo() = 0;
     virtual int getInfoLength() {}
 };

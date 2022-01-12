@@ -135,9 +135,9 @@ static bool js_ar_ARModule_getRemovedPlanesInfo(se::State& s)
     const auto& args = s.args();
     size_t argc = args.size();
     if (argc == 0) {
-        int* buffer = cobj->getRemovedPlanesInfo();
+        unsigned long* buffer = cobj->getRemovedPlanesInfo();
         //int count = cobj->getAddedPlanesCount();
-        se::Object* planesInfo = se::Object::createTypedArray(se::Object::TypedArrayType::INT32, buffer, 4 * 5);
+        se::Object* planesInfo = se::Object::createTypedArray(se::Object::TypedArrayType::UINT32, buffer, 4 * 5);
         s.rval().setObject(planesInfo);
         return true;
     }

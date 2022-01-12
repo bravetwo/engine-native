@@ -88,7 +88,12 @@ bool DeviceAgent::doInit(const DeviceInfo &info) {
 
     //setMultithreaded(true);
     // ar test
+#if USE_AR_MODULE && CC_PLATFORM == CC_PLATFORM_ANDROID
     setMultithreaded(false);
+#else
+    setMultithreaded(true);
+#endif
+    
     return true;
 }
 

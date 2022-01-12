@@ -39,22 +39,31 @@ public:
     void resume() override;
     void pause() override;
     void update() override;
-    bool checkStart() override;
-    int getAPIType() override;
+    int getAPIState() override;
 
-    void setCameraTextureName(int id) override;
+    
     float* getCameraPose() override;
     float* getCameraViewMatrix() override;
     float* getCameraProjectionMatrix() override;
     float* getCameraTexCoords() override;
+    void setCameraTextureName(int id) override;
     void* getCameraTextureRef() override;
-    void syncTextureRef() override;
+
+    int getAddedPlanesCount() override;
+    int getRemovedPlanesCount() override;
+    int getUpdatedPlanesCount() override;
+    void updatePlanesInfo() override;
+    float* getAddedPlanesInfo() override;
+    unsigned long* getRemovedPlanesInfo() override;
+    float* getUpdatedPlanesInfo() override;
+    int getInfoLength() override;
 protected:
     void* _impl;
     Pose *_cameraPose = new Pose();
     Matrix *_viewMatrix = new Matrix();
     Matrix *_projMatrix = new Matrix();
     TexCoords *_cameraTexCoords = new TexCoords();
+    int _infoLength = 0;
 };
 
 } // namespace ar
