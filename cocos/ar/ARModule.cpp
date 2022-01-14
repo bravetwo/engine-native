@@ -117,11 +117,11 @@ int ARModule::getAddedPlanesCount() const {
 }
 int ARModule::getRemovedPlanesCount() const {
     //return _impl->getRemovedPlanesCount();
-    return 0;
+    return _impl->getInfoLength();
 }
 int ARModule::getUpdatedPlanesCount() const {
     //return _impl->getUpdatedPlanesCount();
-    return _impl->getInfoLength() / 12;;
+    return _impl->getInfoLength() / 12;
 }
 void ARModule::updatePlanesInfo() const {
     _impl->updatePlanesInfo();

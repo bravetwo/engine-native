@@ -137,7 +137,8 @@ static bool js_ar_ARModule_getRemovedPlanesInfo(se::State& s)
     if (argc == 0) {
         unsigned long* buffer = cobj->getRemovedPlanesInfo();
         //int count = cobj->getAddedPlanesCount();
-        se::Object* planesInfo = se::Object::createTypedArray(se::Object::TypedArrayType::UINT32, buffer, 4 * 5);
+        int len = cobj->getInfoLength();
+        se::Object* planesInfo = se::Object::createTypedArray(se::Object::TypedArrayType::UINT32, buffer, 4 * len);
         s.rval().setObject(planesInfo);
         return true;
     }
@@ -186,6 +187,24 @@ static bool js_ar_ARModule_getAddedPlanesCount(se::State& s)
 }
 SE_BIND_FUNC(js_ar_ARModule_getAddedPlanesCount)
 
+static bool js_ar_ARModule_getRemovedPlanesCount(se::State& s)
+{
+    cc::ar::ARModule* cobj = (cc::ar::ARModule*)s.nativeThisObject();
+    SE_PRECONDITION2(cobj, false, "js_ar_ARModule_getRemovedPlanesCount : Invalid Native Object");
+
+    const auto& args = s.args();
+    size_t argc = args.size();
+    if (argc == 0) {
+        int result = cobj->getRemovedPlanesCount();
+        s.rval().setInt32(result);
+        return true;
+    }
+
+    SE_REPORT_ERROR("wrong number of arguments: %d, was expecting %d", (int)argc, 0);
+    return false;
+}
+SE_BIND_FUNC(js_ar_ARModule_getRemovedPlanesCount)
+
 static bool js_ar_ARModule_getUpdatedPlanesCount(se::State& s)
 {
     cc::ar::ARModule* cobj = (cc::ar::ARModule*)s.nativeThisObject();
@@ -214,6 +233,7 @@ bool register_all_ar_manual(se::Object *obj) {
     __jsb_cc_ar_ARModule_proto->defineFunction("getRemovedPlanesInfo", _SE(js_ar_ARModule_getRemovedPlanesInfo));
     __jsb_cc_ar_ARModule_proto->defineFunction("getUpdatedPlanesInfo", _SE(js_ar_ARModule_getUpdatedPlanesInfo));
     __jsb_cc_ar_ARModule_proto->defineFunction("getAddedPlanesCount", _SE(js_ar_ARModule_getAddedPlanesCount));
+    __jsb_cc_ar_ARModule_proto->defineFunction("getRemovedPlanesCount", _SE(js_ar_ARModule_getRemovedPlanesCount));
     __jsb_cc_ar_ARModule_proto->defineFunction("getUpdatedPlanesCount", _SE(js_ar_ARModule_getUpdatedPlanesCount));
 
     return true;

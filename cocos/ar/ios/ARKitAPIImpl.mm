@@ -50,10 +50,11 @@ static const int kPlanesInfoSize = 12;
     CGSize mViewportSize;
     UIInterfaceOrientation mUIOrientation;
     
-    int planeRefTag;
+    int mPlaneRefTag;
+    NSMutableArray* mRecycledRefs;
     NSMutableArray* mDetectedPlanes;
     NSMutableArray* mPlanesIndices;
-    NSMutableDictionary* mPlanesMap;
+    NSMutableDictionary* mAnchorsRefMap;
     NSMutableArray* mAllPlanes;
     NSMutableArray* mAddedPlanes;
     NSMutableArray* mRemovedPlanes;
@@ -73,6 +74,8 @@ static const int kPlanesInfoSize = 12;
 - (float*)getCameraTexCoords;
 - (void)updateCameraTexCoords;
 
+- (void) addRefWithAnchor:(ARAnchor *) anchor;
+- (int) recycleRefOfAnchor:(ARAnchor *) anchor;
 - (int) getAddedPlanesCount;
 - (int) getUpdatedPlanesCount;
 - (float *) getAddedPlanesInfo;
@@ -92,12 +95,14 @@ static const int kPlanesInfoSize = 12;
     // the device upright and the Home button on the Right
     mUIOrientation = UIInterfaceOrientationLandscapeRight;
     
-    planeRefTag = 0;
+    mPlaneRefTag = 0;
+    mRecycledRefs = [NSMutableArray new];
     mDetectedPlanes = [NSMutableArray new];
     mAllPlanes = [NSMutableArray new];
     mAddedPlanes = [NSMutableArray new];
+    mRemovedPlanes = [NSMutableArray new];
     mUpdatedPlanes = [NSMutableArray new];
-    mPlanesMap = [NSMutableDictionary new];
+    mAnchorsRefMap = [NSMutableDictionary new];
     
     return self;
 }
@@ -125,113 +130,9 @@ static const int kPlanesInfoSize = 12;
     
 }
 //*/
-- (void) session : (ARSession*) session didAddAnchors : (NSArray<__kindof ARAnchor *> *)anchors {
-    for (ARAnchor* anchor in anchors) {
-        if([anchor isKindOfClass:[ARPlaneAnchor class]]) {
-            ARPlaneAnchor* plane = (ARPlaneAnchor*)anchor;
-            [mAddedPlanes addObject : plane];
-        }
-    }
-    /*
-    [mDetectedPlanes removeAllObjects];
-    for (ARAnchor* anchor in anchors) {
-        if([anchor isKindOfClass:[ARPlaneAnchor class]]) {
-            ARPlaneAnchor* plane = (ARPlaneAnchor*)anchor;
-            [mDetectedPlanes addObject : plane];
-        }
-    }
-    
-    NSMutableArray* sortableArray = [NSMutableArray new];
-    vector_float3 cameraPos = mCameraTransform.columns[3].xyz;
-    for (ARPlaneAnchor* plane in mDetectedPlanes) {
-        vector_float3 normal = simd_mul(plane.transform, simd_make_float4(0, 1, 0, 1)).xyz;
-        normal = simd_normalize(normal);
-        
-        float normalDistance = simd_dot((cameraPos - plane.center), normal);
-        if (normalDistance < 0) continue;
-        
-        SortablePlane* sortable = [[SortablePlane alloc] initWithDistance : normalDistance andPlane : plane];
-        [sortableArray addObject:sortable];
-    }
-    
-    [sortableArray sortUsingComparator:^NSComparisonResult(SortablePlane* obj1, SortablePlane* obj2) {
-        return [obj1 compare: obj2];
-    }];
-    
-    int count = 0;
-    
-    //[mAddedPlanes removeAllObjects];
-    //[mUpdatedPlanes removeAllObjects];
-    for (SortablePlane* sortedPlane in sortableArray) {
-        ARPlaneAnchor* plane = sortedPlane->plane;
-        
-        if ([mAllPlanes containsObject : plane]) {
-            //[mUpdatedPlanes addObject : plane];
-        } else {
-            [mAddedPlanes addObject : plane];
-            [mPlanesIndices addObject: [NSNumber numberWithInt:planeRefTag]];
-            ++planeRefTag;
-            [mAllPlanes addObject : plane];
-            [mPlanesMap setObject:plane forKey:[NSNumber numberWithUnsignedInteger:plane.identifier.hash]];
-        }
-        
-        ++count;
-    }
-    //*/
-}
 
-- (void) session:(ARSession *)session didRemoveAnchors:(NSArray<__kindof ARAnchor *> *)anchors {
-    for (ARAnchor* anchor in anchors) {
-        if([anchor isKindOfClass:[ARPlaneAnchor class]]) {
-            ARPlaneAnchor* plane = (ARPlaneAnchor*)anchor;
-            [mRemovedPlanes addObject : plane];
-        }
-    }
-}
 
-- (void) session:(ARSession *)session didUpdateAnchors:(NSArray<__kindof ARAnchor *> *)anchors {
-    for (ARAnchor* anchor in anchors) {
-        if([anchor isKindOfClass:[ARPlaneAnchor class]]) {
-            ARPlaneAnchor* plane = (ARPlaneAnchor*)anchor;
-            [mUpdatedPlanes addObject : plane];
-        }
-    }
-}
 
-- (int) getAddedPlanesCount {
-    return (int)mAddedPlanes.count;
-}
-
-- (int) getUpdatedPlanesCount {
-    return (int)mUpdatedPlanes.count;
-}
-
-- (int) getRemovedPlanesCount {
-    return (int)mRemovedPlanes.count;
-}
-
-- (float *) getAddedPlanesInfo {
-    float* planesInfo = [self transferPlanesInfo : mAddedPlanes];
-    [mAddedPlanes removeAllObjects];
-    return planesInfo;
-}
-
-- (float *) getUpdatedPlanesInfo {
-    float* planesInfo = [self transferPlanesInfo : mUpdatedPlanes];
-    [mUpdatedPlanes removeAllObjects];
-    return planesInfo;
-}
-
-- (unsigned long *) getRemovedPlanesInfo {
-    unsigned long * planesInfo = (unsigned long *)malloc(sizeof(unsigned long) * kPlanesInfoSize * mRemovedPlanes.count);
-    int n = 0;
-    for (ARPlaneAnchor* plane in mRemovedPlanes) {
-        planesInfo[n] = plane.identifier.hash;
-        ++n;
-    }
-    [mRemovedPlanes removeAllObjects];
-    return planesInfo;
-}
 
 - (void) startSession {
     ARWorldTrackingConfiguration* config = [ARWorldTrackingConfiguration new];
@@ -274,6 +175,8 @@ static const int kPlanesInfoSize = 12;
 - (bool) checkStart {
     return mARSession && mFrame;
 }
+
+#pragma mark - ar camera
 
 - (CVPixelBufferRef) getCameraTextureRef {
     return mPixelBuffer;
@@ -352,13 +255,169 @@ static const int kPlanesInfoSize = 12;
     }
 }
 
+#pragma mark - anchor contents
+
+- (void) session : (ARSession*) session didAddAnchors : (NSArray<__kindof ARAnchor *> *)anchors {
+    for (ARAnchor* anchor in anchors) {
+        if([anchor isKindOfClass:[ARPlaneAnchor class]]) {
+            ARPlaneAnchor* plane = (ARPlaneAnchor*)anchor;
+            [mAddedPlanes addObject : plane];
+            [self addRefWithAnchor:plane];
+        }
+    }
+    /*
+    [mDetectedPlanes removeAllObjects];
+    for (ARAnchor* anchor in anchors) {
+        if([anchor isKindOfClass:[ARPlaneAnchor class]]) {
+            ARPlaneAnchor* plane = (ARPlaneAnchor*)anchor;
+            [mDetectedPlanes addObject : plane];
+        }
+    }
+    
+    NSMutableArray* sortableArray = [NSMutableArray new];
+    vector_float3 cameraPos = mCameraTransform.columns[3].xyz;
+    for (ARPlaneAnchor* plane in mDetectedPlanes) {
+        vector_float3 normal = simd_mul(plane.transform, simd_make_float4(0, 1, 0, 1)).xyz;
+        normal = simd_normalize(normal);
+        
+        float normalDistance = simd_dot((cameraPos - plane.center), normal);
+        if (normalDistance < 0) continue;
+        
+        SortablePlane* sortable = [[SortablePlane alloc] initWithDistance : normalDistance andPlane : plane];
+        [sortableArray addObject:sortable];
+    }
+    
+    [sortableArray sortUsingComparator:^NSComparisonResult(SortablePlane* obj1, SortablePlane* obj2) {
+        return [obj1 compare: obj2];
+    }];
+    
+    int count = 0;
+    
+    //[mAddedPlanes removeAllObjects];
+    //[mUpdatedPlanes removeAllObjects];
+    for (SortablePlane* sortedPlane in sortableArray) {
+        ARPlaneAnchor* plane = sortedPlane->plane;
+        
+        if ([mAllPlanes containsObject : plane]) {
+            //[mUpdatedPlanes addObject : plane];
+        } else {
+            [mAddedPlanes addObject : plane];
+            [mPlanesIndices addObject: [NSNumber numberWithInt:planeRefTag]];
+            ++planeRefTag;
+            [mAllPlanes addObject : plane];
+            [mPlanesMap setObject:plane forKey:[NSNumber numberWithUnsignedInteger:plane.identifier.hash]];
+        }
+        
+        ++count;
+    }
+    //*/
+}
+
+- (void) session:(ARSession *)session didRemoveAnchors:(NSArray<__kindof ARAnchor *> *)anchors {
+    for (ARAnchor* anchor in anchors) {
+        if([anchor isKindOfClass:[ARPlaneAnchor class]]) {
+            ARPlaneAnchor* plane = (ARPlaneAnchor*)anchor;
+            [mRemovedPlanes addObject : plane];
+        }
+    }
+}
+
+- (void) session:(ARSession *)session didUpdateAnchors:(NSArray<__kindof ARAnchor *> *)anchors {
+    for (ARAnchor* anchor in anchors) {
+        if([anchor isKindOfClass:[ARPlaneAnchor class]]) {
+            ARPlaneAnchor* plane = (ARPlaneAnchor*)anchor;
+            [mUpdatedPlanes addObject : plane];
+        }
+    }
+}
+
+#pragma mark - plane detection
+
+- (int) getAddedPlanesCount {
+    return (int)mAddedPlanes.count;
+}
+
+- (int) getUpdatedPlanesCount {
+    return (int)mUpdatedPlanes.count;
+}
+
+- (int) getRemovedPlanesCount {
+    return (int)mRemovedPlanes.count;
+}
+
+- (float *) getAddedPlanesInfo {
+    float* planesInfo = [self transferPlanesInfo : mAddedPlanes];
+    [mAddedPlanes removeAllObjects];
+    return planesInfo;
+}
+
+- (float *) getUpdatedPlanesInfo {
+    float* planesInfo = [self transferPlanesInfo : mUpdatedPlanes];
+    [mUpdatedPlanes removeAllObjects];
+    return planesInfo;
+}
+
+- (unsigned long *) getRemovedPlanesInfo {
+    unsigned long * planesInfo = (unsigned long *)malloc(sizeof(unsigned long) * kPlanesInfoSize * mRemovedPlanes.count);
+    int n = 0;
+    for (ARPlaneAnchor* plane in mRemovedPlanes) {
+        planesInfo[n] = [self recycleRefOfAnchor:plane];
+        ++n;
+    }
+    [mRemovedPlanes removeAllObjects];
+    return planesInfo;
+}
+
+#pragma mark - raycast
+
+- (bool) raycastWithX:(float) x WithY:(float) y {
+    bool result = false;
+    if (@available(iOS 13.0, *)) {
+        NSArray<ARRaycastResult *> * raycastResults = [mARSession raycast:[mFrame raycastQueryFromPoint:CGPointMake(x, y) allowingTarget:ARRaycastTargetExistingPlaneInfinite alignment:ARRaycastTargetAlignmentHorizontal]];
+        if(raycastResults.count > 0) {
+            
+            result = true;
+        }
+    } else {
+        // Fallback on earlier versions
+        NSArray<ARHitTestResult *> * raycastResults = [mFrame hitTest:CGPointMake(x, y) types:ARHitTestResultTypeExistingPlane];
+        if(raycastResults.count > 0) {
+            result = true;
+        }
+    }
+}
+
+#pragma mark - utils
+
+- (void) addRefWithAnchor:(ARAnchor *) anchor {
+    unsigned int ref;
+    if (mRecycledRefs.count > 0) {
+        ref = [mRecycledRefs[0] intValue];
+        [mRecycledRefs removeObjectAtIndex:0];
+    } else {
+        ref = mPlaneRefTag++;
+    }
+    [mAnchorsRefMap setObject:[NSNumber numberWithUnsignedInteger:ref] forKey:anchor];
+}
+
+- (int) recycleRefOfAnchor:(ARAnchor *) anchor {
+    int recycleRef = -1;
+    NSNumber* refNumber = [mAnchorsRefMap objectForKey:anchor];
+    if(refNumber) {
+        recycleRef = [refNumber intValue];
+        [mRecycledRefs addObject:refNumber];
+        [mAnchorsRefMap removeObjectForKey:anchor];
+    }
+    return recycleRef;
+}
+
 - (float *) transferPlanesInfo : (NSMutableArray *) planes {
     float * planesInfo = (float *)malloc(sizeof(float) * kPlanesInfoSize * planes.count);
-    int maxSize = 5;
+    //int maxSize = 5;
     int n = 0;
     for (ARPlaneAnchor* plane in planes) {
-        if (n >= maxSize) break;
-        planesInfo[n * kPlanesInfoSize] = plane.identifier.hash;
+        //if (n >= maxSize) break;
+        planesInfo[n * kPlanesInfoSize] = [[mAnchorsRefMap objectForKey:plane] floatValue];
         planesInfo[n * kPlanesInfoSize + 1] = plane.alignment;
         planesInfo[n * kPlanesInfoSize + 2] = 0;
         
@@ -366,10 +425,10 @@ static const int kPlanesInfoSize = 12;
         planesInfo[n * kPlanesInfoSize + 4] = plane.extent.z;
         
         vector_float4 c3 = plane.transform.columns[3];
-        simd_float3 center = matrix_multiply(matrix_invert(plane.transform), simd_make_float4(plane.center, 1)).xyz;
-        planesInfo[n * kPlanesInfoSize + 5] = center.x + c3.x;
-        planesInfo[n * kPlanesInfoSize + 6] = center.y + c3.y;
-        planesInfo[n * kPlanesInfoSize + 7] = center.z + c3.z;
+        simd_float3 center = matrix_multiply(plane.transform, simd_make_float4(plane.center, 1)).xyz;
+        planesInfo[n * kPlanesInfoSize + 5] = center.x;
+        planesInfo[n * kPlanesInfoSize + 6] = center.y;
+        planesInfo[n * kPlanesInfoSize + 7] = center.z;
         
         simd_float4 quat = [ARKitAPI transformToQuaternion : plane.transform];
         planesInfo[n * kPlanesInfoSize + 8] = quat.x;
@@ -394,6 +453,8 @@ static const int kPlanesInfoSize = 12;
     return simd_make_float4(qx, qy, qz, qw);
 }
 @end
+
+#pragma mark - ARKitAPIImpl
 
 #define TransferImpl ARKitAPI *impl = (__bridge ARKitAPI *)_impl;
 
@@ -468,7 +529,7 @@ void ARKitAPIImpl::updatePlanesInfo() {
 }
 float* ARKitAPIImpl::getAddedPlanesInfo() {
     TransferImpl;
-    _infoLength = [impl getAddedPlanesCount];
+    _infoLength = [impl getAddedPlanesCount] * 12;
     return (__bridge float *)[impl getAddedPlanesInfo];
 }
 unsigned long* ARKitAPIImpl::getRemovedPlanesInfo() {
@@ -478,11 +539,11 @@ unsigned long* ARKitAPIImpl::getRemovedPlanesInfo() {
 }
 float* ARKitAPIImpl::getUpdatedPlanesInfo() {
     TransferImpl;
-    _infoLength = [impl getUpdatedPlanesCount];
+    _infoLength = [impl getUpdatedPlanesCount] * 12;
     return (__bridge float *)[impl getUpdatedPlanesInfo];
 }
 int ARKitAPIImpl::getInfoLength() {
-    return _infoLength * 12;
+    return _infoLength;
 }
 
 } // namespace ar
