@@ -54,9 +54,18 @@ public:
     int getUpdatedPlanesCount() override;
     void updatePlanesInfo() override;
     float* getAddedPlanesInfo() override;
-    unsigned long* getRemovedPlanesInfo() override;
+    int* getRemovedPlanesInfo() override;
     float* getUpdatedPlanesInfo() override;
     int getInfoLength() override;
+
+    int tryHitAttachAnchor(int planeIndex) override;
+    float* getAnchorPose(int index) override;
+
+    bool raycast(float xPx, float yPx) override;
+    float* getRaycastPose() override;
+    int getRaycastTrackableId() override;
+    int getRaycastTrackableType() override;
+
 protected:
     void* _impl;
     Pose *_cameraPose = new Pose();

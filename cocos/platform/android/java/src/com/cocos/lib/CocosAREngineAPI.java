@@ -24,11 +24,18 @@
 
 package com.cocos.lib;
 
+import com.google.ar.core.Anchor;
+import com.google.ar.core.HitResult;
+import com.google.ar.core.Plane;
+import com.google.ar.core.Pose;
+import com.google.ar.core.Trackable;
+import com.huawei.hiar.ARAnchor;
 import com.huawei.hiar.AREnginesApk;
 import com.huawei.hiar.ARCamera;
 //import com.huawei.hiar.Config;
 //import com.huawei.hiar.Config.InstantPlacementMode;
 import com.huawei.hiar.ARConfigBase;
+import com.huawei.hiar.ARHitResult;
 import com.huawei.hiar.ARWorldTrackingConfig;
 //import com.huawei.hiar.DepthPoint;
 import com.huawei.hiar.ARFrame;
@@ -107,6 +114,13 @@ public class CocosAREngineAPI extends CocosARAPIBase {
     private List<Integer> mAddedPlanes = new ArrayList<>();
     private List<Integer> mRemovedPlanes = new ArrayList<>();
     private List<Integer> mUpdatedPlanes = new ArrayList<>();
+
+    private int anchorTag = 0;
+    private final ArrayList<ARAnchor> anchors = new ArrayList<>();
+    private ARPose mHitPose;
+    private float[] mHitResult = new float[7];
+    private int mHitTrackable;
+    private int mHitTrackableType;
 
     public static CocosAREngineAPI init() {
         api = new CocosAREngineAPI();
@@ -624,6 +638,85 @@ public class CocosAREngineAPI extends CocosARAPIBase {
     }
 
     //#endregion
+
+    // Anchor
+    @Override
+    public int hitAttachAnchor(int planeIndex) {
+        ARPlane plane = planesMap.get(planeIndex);
+        if (plane != null) {
+            ARAnchor newAnchor = plane.createAnchor(mHitPose);
+            anchors.add(newAnchor);
+            int result = anchorTag++;
+            return result;
+        }
+        return -1;
+    }
+    private int attachAnchor(int planeIndex, ARPose pose) {
+        ARPlane plane = planesMap.get(planeIndex);
+        if (plane != null) {
+            ARAnchor newAnchor = plane.createAnchor(pose);
+            anchors.add(newAnchor);
+            int result = anchorTag++;
+            return result;
+        }
+        return -1;
+    }
+
+    private ARAnchor createAnchor(ARTrackable trackableContent, ARPose pose) {
+        ARAnchor newAnchor = trackableContent.createAnchor(pose);
+        anchors.add(newAnchor);
+        return newAnchor;
+    }
+
+    @Override
+    public float[] getAnchorPose(int index) {
+        float[] arr = new float[7];
+        ARPose pose =  anchors.get(index).getPose();
+        copyPoseToArray(pose, arr);
+        return arr;
+    }
+
+    private void removeAnchor(Anchor anchor) {
+        anchor.detach();
+        anchors.remove(anchor);
+    }
+
+    // Raycast, (0,0) is top left corner.
+    @Override
+    public boolean raycast(float xPx, float yPx) {
+        List<ARHitResult> hitResultList;
+        hitResultList = mFrame.hitTest(xPx, yPx);
+
+        if (hitResultList.size() == 0) return false;
+
+        for (ARHitResult hit : hitResultList) {
+            ARTrackable trackable = hit.getTrackable();
+            ARPose pose = hit.getHitPose();
+            mHitPose = pose;
+            if((trackable instanceof ARPlane && ((ARPlane) trackable).isPoseInPolygon(pose)
+                    && (calculateDistanceToPlane(pose, mCamera.getPose()) > 0))) {
+                ARPlane plane = (ARPlane) trackable;
+                mHitTrackable = planesIndexMap.get(plane);
+                copyPoseToArray(pose, mHitResult);
+                break;
+            }
+        }
+
+        return true;
+    }
+    @Override
+    public float[] getRaycastPose() {
+        return mHitResult;
+    }
+    @Override
+    public int getRaycastTrackableId() {
+        return mHitTrackable;
+    }
+    @Override
+    public int getRaycastTrackableType() {
+        return mHitTrackableType;
+    }
+
 
     private static void copyPoseToArray(ARPose src, float[] arr) {
         copyPoseToArray(src, arr, 0);

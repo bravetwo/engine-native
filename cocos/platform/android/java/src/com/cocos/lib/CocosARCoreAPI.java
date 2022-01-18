@@ -98,6 +98,13 @@ public class CocosARCoreAPI extends CocosARAPIBase implements ActivityCompat.OnR
     private List<Integer> mRemovedPlanes = new ArrayList<>();
     private List<Integer> mUpdatedPlanes = new ArrayList<>();
 
+    private int anchorTag = 0;
+    private final ArrayList<Anchor> anchors = new ArrayList<>();
+    private Pose mHitPose;
+    private float[] mHitResult = new float[7];
+    private int mHitTrackable;
+    private int mHitTrackableType;
+
     public static CocosARCoreAPI init() {
         api = new CocosARCoreAPI();
         return api;
@@ -573,6 +580,83 @@ public class CocosARCoreAPI extends CocosARAPIBase implements ActivityCompat.OnR
     }
 
     //#endregion
+
+    // Anchor
+    @Override
+    public int hitAttachAnchor(int planeIndex) {
+        Plane plane = planesMap.get(planeIndex);
+        if (plane != null) {
+            Anchor newAnchor = plane.createAnchor(mHitPose);
+            anchors.add(newAnchor);
+            int result = anchorTag++;
+            return result;
+        }
+        return -1;
+    }
+    private int attachAnchor(int planeIndex, Pose pose) {
+        Plane plane = planesMap.get(planeIndex);
+        if (plane != null) {
+            Anchor newAnchor = plane.createAnchor(pose);
+            anchors.add(newAnchor);
+            int result = anchorTag++;
+            return result;
+        }
+        return -1;
+    }
+
+    private Anchor createAnchor(Trackable trackableContent, Pose pose) {
+        Anchor newAnchor = trackableContent.createAnchor(pose);
+        anchors.add(newAnchor);
+        return newAnchor;
+    }
+    @Override
+    public float[] getAnchorPose(int index) {
+        float[] arr = new float[7];
+        Pose pose =  anchors.get(index).getPose();
+        copyPoseToArray(pose, arr);
+        return arr;
+    }
+
+    private void removeAnchor(Anchor anchor) {
+        anchor.detach();
+        anchors.remove(anchor);
+    }
+
+    // Raycast, (0,0) is top left corner.
+    @Override
+    public boolean raycast(float xPx, float yPx) {
+        List<HitResult> hitResultList;
+        hitResultList = mFrame.hitTest(xPx, yPx);
+
+        if (hitResultList.size() == 0) return false;
+
+        for (HitResult hit : hitResultList) {
+            Trackable trackable = hit.getTrackable();
+            Pose pose = hit.getHitPose();
+            mHitPose = pose;
+            if((trackable instanceof Plane && ((Plane) trackable).isPoseInPolygon(pose) 
+            && (calculateDistanceToPlane(pose, mCamera.getPose()) > 0))) {
+                Plane plane = (Plane) trackable;
+                mHitTrackable = planesIndexMap.get(plane);
+                copyPoseToArray(pose, mHitResult);
+            }
+        }
+
+        return true;
+    }
+    @Override
+    public float[] getRaycastPose() {
+        return mHitResult;
+    }
+    @Override
+    public int getRaycastTrackableId() {
+        return mHitTrackable;
+    }
+    @Override
+    public int getRaycastTrackableType() {
+        return mHitTrackableType;
+    }
+
 
     private static void copyPoseToArray(Pose src, float[] arr) {
         copyPoseToArray(src, arr, 0);

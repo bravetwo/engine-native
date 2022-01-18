@@ -130,7 +130,7 @@ float* ARModule::getAddedPlanesInfo() const {
     return _impl->getAddedPlanesInfo();
 }
 
-unsigned long* ARModule::getRemovedPlanesInfo() const {
+int* ARModule::getRemovedPlanesInfo() const {
     return _impl->getRemovedPlanesInfo();
 }
 float* ARModule::getUpdatedPlanesInfo() const {
@@ -139,6 +139,25 @@ float* ARModule::getUpdatedPlanesInfo() const {
 
 int ARModule::getInfoLength() const {
     return _impl->getInfoLength();
+}
+
+int ARModule::tryHitAttachAnchor(int trackableId) const {
+    return _impl->tryHitAttachAnchor(trackableId);
+}
+float* ARModule::getAnchorPose(int anchorId) const {
+    return _impl->getAnchorPose(anchorId);
+}
+
+bool ARModule::tryHitTest(float xPx, float yPx) const {
+    return _impl->raycast(xPx, yPx);
+}
+
+float* ARModule::getHitResult() const {
+    return _impl->getRaycastPose();
+}
+
+int ARModule::getHitId() const {
+    return _impl->getRaycastTrackableId();
 }
 
 } // namespace ar

@@ -68,10 +68,15 @@ public:
     int getUpdatedPlanesCount() const;
     void updatePlanesInfo() const;
     float* getAddedPlanesInfo() const;
-    unsigned long* getRemovedPlanesInfo() const;
+    int* getRemovedPlanesInfo() const;
     float* getUpdatedPlanesInfo() const;
     int getInfoLength() const;
     
+    int tryHitAttachAnchor(int trackableId) const;
+    float* getAnchorPose(int anchorId) const;
+    bool tryHitTest(float xPx, float yPx) const;
+    float* getHitResult() const;
+    int getHitId() const;
 private:
     std::unique_ptr<IARAPI> _impl;
 };

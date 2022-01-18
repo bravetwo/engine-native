@@ -91,4 +91,11 @@ public abstract class CocosARAPIBase {
     public abstract int[] getRemovedPlanesInfo();
     public abstract float[] getUpdatedPlanesInfo();
     //#endregion
+
+    public abstract int hitAttachAnchor(int planeIndex);
+    public abstract float[] getAnchorPose(int index);
+    public abstract boolean raycast(float xPx, float yPx);
+    public abstract float[] getRaycastPose();
+    public abstract int getRaycastTrackableId();
+    public abstract int getRaycastTrackableType();
 }

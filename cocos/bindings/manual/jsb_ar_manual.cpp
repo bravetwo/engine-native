@@ -135,7 +135,7 @@ static bool js_ar_ARModule_getRemovedPlanesInfo(se::State& s)
     const auto& args = s.args();
     size_t argc = args.size();
     if (argc == 0) {
-        unsigned long* buffer = cobj->getRemovedPlanesInfo();
+        int* buffer = cobj->getRemovedPlanesInfo();
         //int count = cobj->getAddedPlanesCount();
         int len = cobj->getInfoLength();
         se::Object* planesInfo = se::Object::createTypedArray(se::Object::TypedArrayType::UINT32, buffer, 4 * len);
@@ -223,6 +223,113 @@ static bool js_ar_ARModule_getUpdatedPlanesCount(se::State& s)
 }
 SE_BIND_FUNC(js_ar_ARModule_getUpdatedPlanesCount)
 
+static bool js_ar_ARModule_tryHitAttachAnchor(se::State& s)
+{
+    cc::ar::ARModule* cobj = (cc::ar::ARModule*)s.nativeThisObject();
+    SE_PRECONDITION2(cobj, false, "js_ar_ARModule_tryHitAttachAnchor : Invalid Native Object");
+
+    const auto& args = s.args();
+    size_t argc = args.size();
+    CC_UNUSED bool ok = true;
+    if (argc == 1) {
+        HolderType<int, false> arg0 = {};
+        ok &= sevalue_to_native(args[0], &arg0, s.thisObject());
+        SE_PRECONDITION2(ok, false, "js_ar_ARModule_tryHitAttachAnchor : Error processing arguments");
+
+        int result = cobj->tryHitAttachAnchor(arg0.value());
+        s.rval().setInt32(result);
+        return true;
+    }
+
+    SE_REPORT_ERROR("wrong number of arguments: %d, was expecting %d", (int)argc, 1);
+    return false;
+}
+SE_BIND_FUNC(js_ar_ARModule_tryHitAttachAnchor)
+
+static bool js_ar_ARModule_getAnchorPose(se::State& s)
+{
+    cc::ar::ARModule* cobj = (cc::ar::ARModule*)s.nativeThisObject();
+    SE_PRECONDITION2(cobj, false, "js_ar_ARModule_getAnchorPose : Invalid Native Object");
+
+    const auto& args = s.args();
+    size_t argc = args.size();
+    CC_UNUSED bool ok = true;
+    if (argc == 1) {
+        HolderType<int, false> arg0 = {};
+        ok &= sevalue_to_native(args[0], &arg0, s.thisObject());
+        SE_PRECONDITION2(ok, false, "js_ar_ARModule_getAnchorPose : Error processing arguments");
+
+        float* buffer = cobj->getAnchorPose(arg0.value());
+        se::Object* planesInfo = se::Object::createTypedArray(se::Object::TypedArrayType::FLOAT32, buffer, 4 * 7);
+        s.rval().setObject(planesInfo);
+        return true;
+    }
+
+    SE_REPORT_ERROR("wrong number of arguments: %d, was expecting %d", (int)argc, 1);
+    return false;
+}
+SE_BIND_FUNC(js_ar_ARModule_getAnchorPose)
+
+static bool js_ar_ARModule_tryHitTest(se::State& s) { // NOLINT(readability-identifier-naming)
+    auto* cobj = SE_THIS_OBJECT<cc::ar::ARModule>(s);
+    SE_PRECONDITION2(cobj, false, "js_ar_ARModule_tryHitTest : Invalid Native Object");
+    const auto& args = s.args();
+    size_t argc = args.size();
+    CC_UNUSED bool ok = true;
+    if (argc == 2) {
+        HolderType<float, false> arg0 = {};
+        ok &= sevalue_to_native(args[0], &arg0, s.thisObject());
+        SE_PRECONDITION2(ok, false, "js_ar_ARModule_tryHitTest : Error processing arguments");
+        HolderType<float, false> arg1 = {};
+        ok &= sevalue_to_native(args[1], &arg1, s.thisObject());
+        SE_PRECONDITION2(ok, false, "js_ar_ARModule_tryHitTest : Error processing arguments");
+
+        bool result = cobj->tryHitTest(arg0.value(), arg1.value());
+        s.rval().setBoolean(result);
+        return true;
+    }
+    SE_REPORT_ERROR("wrong number of arguments: %d, was expecting %d", (int)argc, 2);
+    return false;
+}
+SE_BIND_FUNC(js_ar_ARModule_tryHitTest) // NOLINT(readability-identifier-naming)
+
+static bool js_ar_ARModule_getHitResult(se::State& s)
+{
+    cc::ar::ARModule* cobj = (cc::ar::ARModule*)s.nativeThisObject();
+    SE_PRECONDITION2(cobj, false, "js_ar_ARModule_getHitResult : Invalid Native Object");
+
+    const auto& args = s.args();
+    size_t argc = args.size();
+    if (argc == 0) {
+        float* buffer = cobj->getHitResult();
+        se::Object* hitPose = se::Object::createTypedArray(se::Object::TypedArrayType::FLOAT32, buffer, 28);
+        s.rval().setObject(hitPose);
+        return true;
+    }
+
+    SE_REPORT_ERROR("wrong number of arguments: %d, was expecting %d", (int)argc, 0);
+    return false;
+}
+SE_BIND_FUNC(js_ar_ARModule_getHitResult)
+
+static bool js_ar_ARModule_getHitId(se::State& s)
+{
+    cc::ar::ARModule* cobj = (cc::ar::ARModule*)s.nativeThisObject();
+    SE_PRECONDITION2(cobj, false, "js_ar_ARModule_getHitId : Invalid Native Object");
+
+    const auto& args = s.args();
+    size_t argc = args.size();
+    if (argc == 0) {
+        int result = cobj->getHitId();
+        s.rval().setInt32(result);
+        return true;
+    }
+
+    SE_REPORT_ERROR("wrong number of arguments: %d, was expecting %d", (int)argc, 0);
+    return false;
+}
+SE_BIND_FUNC(js_ar_ARModule_getHitId)
+
 bool register_all_ar_manual(se::Object *obj) {
     __jsb_cc_ar_ARModule_proto->defineFunction("getCameraPose", _SE(js_ar_ARModule_getCameraPose));
     __jsb_cc_ar_ARModule_proto->defineFunction("getCameraViewMatrix", _SE(js_ar_ARModule_getCameraViewMatrix));
@@ -235,6 +342,12 @@ bool register_all_ar_manual(se::Object *obj) {
     __jsb_cc_ar_ARModule_proto->defineFunction("getAddedPlanesCount", _SE(js_ar_ARModule_getAddedPlanesCount));
     __jsb_cc_ar_ARModule_proto->defineFunction("getRemovedPlanesCount", _SE(js_ar_ARModule_getRemovedPlanesCount));
     __jsb_cc_ar_ARModule_proto->defineFunction("getUpdatedPlanesCount", _SE(js_ar_ARModule_getUpdatedPlanesCount));
+
+    __jsb_cc_ar_ARModule_proto->defineFunction("tryHitAttachAnchor", _SE(js_ar_ARModule_tryHitAttachAnchor));
+    __jsb_cc_ar_ARModule_proto->defineFunction("getAnchorPose", _SE(js_ar_ARModule_getAnchorPose));
+    __jsb_cc_ar_ARModule_proto->defineFunction("tryHitTest", _SE(js_ar_ARModule_tryHitTest));
+    __jsb_cc_ar_ARModule_proto->defineFunction("getHitResult", _SE(js_ar_ARModule_getHitResult));
+    __jsb_cc_ar_ARModule_proto->defineFunction("getHitId", _SE(js_ar_ARModule_getHitId));
 
     return true;
 }

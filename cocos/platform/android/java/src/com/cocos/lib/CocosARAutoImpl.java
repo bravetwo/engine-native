@@ -104,4 +104,23 @@ public class CocosARAutoImpl {
         return api.getUpdatedPlanesInfo();
     }
     //#endregion
+
+    public static int tryHitAttachAnchor(final CocosARAutoImpl impl, int planeIndex) {
+        return api.hitAttachAnchor(planeIndex);
+    }
+    public static float[] getAnchorPose(final CocosARAutoImpl impl, int index) {
+        return api.getAnchorPose(index);
+    }
+    public static boolean raycast(final CocosARAutoImpl impl, float xPx, float yPx) {
+        return api.raycast(xPx, yPx);
+    }
+    public static float[] getRaycastPose(final CocosARAutoImpl impl) {
+        return api.getRaycastPose();
+    }
+    public static int getRaycastTrackableId(final CocosARAutoImpl impl) {
+        return api.getRaycastTrackableId();
+    }
+    public static int getRaycastTrackableType(final CocosARAutoImpl impl) {
+        return api.getRaycastTrackableType();
+    }
 }

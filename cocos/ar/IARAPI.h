@@ -64,9 +64,17 @@ public:
     virtual int getUpdatedPlanesCount() = 0;
     virtual void updatePlanesInfo() = 0;
     virtual float* getAddedPlanesInfo() = 0;
-    virtual unsigned long* getRemovedPlanesInfo() = 0;
+    virtual int* getRemovedPlanesInfo() = 0;
     virtual float* getUpdatedPlanesInfo() = 0;
     virtual int getInfoLength() {}
+
+    virtual int tryHitAttachAnchor(int planeIndex) = 0;
+    virtual float* getAnchorPose(int index) = 0;
+
+    virtual bool raycast(float xPx, float yPx) = 0;
+    virtual float* getRaycastPose() = 0;
+    virtual int getRaycastTrackableId() = 0;
+    virtual int getRaycastTrackableType() = 0;
 };
 
 } // namespace ar

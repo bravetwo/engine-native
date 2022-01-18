@@ -459,13 +459,17 @@ int* ARAndroidAPIImpl::getRemovedPlanesInfo() {
                     _impl
             );
             jsize len = methodInfo.env->GetArrayLength(array);
-            if (len <= 5) {
+            //if (len <= 5) {
                 jint* elems = methodInfo.env->GetIntArrayElements(array, nullptr);
                 if (elems) {
+                    auto* info = new float[len];
+                    _infoLength = len;
                     memcpy(_removedPlanesInfo, elems, sizeof(int) * len);
+                    //memcpy(_removedPlanesInfo, elems, sizeof(int) * len);
                     methodInfo.env->ReleaseIntArrayElements(array, elems, 0);
+                    _updatedPlanesInfo = info;
                 };
-            }
+            //}
             methodInfo.env->DeleteLocalRef(methodInfo.classID);
         }
     }
@@ -503,6 +507,138 @@ float* ARAndroidAPIImpl::getUpdatedPlanesInfo() {
 
 int ARAndroidAPIImpl::getInfoLength() {
     return _infoLength;
+}
+
+int ARAndroidAPIImpl::tryHitAttachAnchor(int planeIndex) {
+    if(_impl != nullptr) {
+        JniMethodInfo methodInfo;
+        if (JniHelper::getStaticMethodInfo(methodInfo,
+                                            JCLS_ARAPI,
+                                            "tryHitAttachAnchor",
+                                            "(" JARG_ARAPI "I" ")I")) {
+            auto result = static_cast<int>(methodInfo.env->CallStaticIntMethod(
+                    methodInfo.classID,
+                    methodInfo.methodID,
+                    _impl,
+                    planeIndex
+            ));
+            methodInfo.env->DeleteLocalRef(methodInfo.classID);
+            return result;
+        }
+    }
+    return -1;
+}
+
+float* ARAndroidAPIImpl::getAnchorPose(int index) {
+    if(_impl != nullptr) {
+        JniMethodInfo methodInfo;
+        if (JniHelper::getStaticMethodInfo(methodInfo,
+                                            JCLS_ARAPI,
+                                            "getAnchorPose",
+                                            "(" JARG_ARAPI "I" ")[F")) {
+            jfloatArray array = (jfloatArray)methodInfo.env->CallStaticObjectMethod(
+                    methodInfo.classID,
+                    methodInfo.methodID,
+                    _impl,
+                    index
+            );
+            jsize len = methodInfo.env->GetArrayLength(array);
+            if (len <= 7) {
+                jfloat* elems = methodInfo.env->GetFloatArrayElements(array, 0);
+                if (elems) {
+                    memcpy(_anchorPose, elems, sizeof(float) * len);
+                    methodInfo.env->ReleaseFloatArrayElements(array, elems, 0);
+                };
+            }
+            methodInfo.env->DeleteLocalRef(methodInfo.classID);
+        }
+    }
+    return _anchorPose;
+}
+
+bool ARAndroidAPIImpl::raycast(float xPx, float yPx) {
+    if(_impl != nullptr) {
+        JniMethodInfo methodInfo;
+        if (JniHelper::getStaticMethodInfo(methodInfo,
+                                            JCLS_ARAPI,
+                                            "raycast",
+                                            "(" JARG_ARAPI "F" "F" ")Z")) {
+            bool result = static_cast<bool>(methodInfo.env->CallStaticBooleanMethod(
+                    methodInfo.classID,
+                    methodInfo.methodID,
+                    _impl,
+                    xPx,
+                    yPx
+            ));
+            methodInfo.env->DeleteLocalRef(methodInfo.classID);
+            return result;
+        }
+    }
+    return false;
+}
+
+float* ARAndroidAPIImpl::getRaycastPose() {
+    if(_impl != nullptr) {
+        JniMethodInfo methodInfo;
+        if (JniHelper::getStaticMethodInfo(methodInfo,
+                                            JCLS_ARAPI,
+                                            "getRaycastPose",
+                                            "(" JARG_ARAPI ")[F")) {
+            jfloatArray array = (jfloatArray)methodInfo.env->CallStaticObjectMethod(
+                    methodInfo.classID,
+                    methodInfo.methodID,
+                    _impl
+            );
+            jsize len = methodInfo.env->GetArrayLength(array);
+            if (len <= 7) {
+                jfloat* elems = methodInfo.env->GetFloatArrayElements(array, 0);
+                if (elems) {
+                    memcpy(_hitPose, elems, sizeof(float) * len);
+                    methodInfo.env->ReleaseFloatArrayElements(array, elems, 0);
+                };
+            }
+            methodInfo.env->DeleteLocalRef(methodInfo.classID);
+        }
+    }
+    return _hitPose;
+}
+
+int ARAndroidAPIImpl::getRaycastTrackableId() {
+    if(_impl != nullptr) {
+        JniMethodInfo methodInfo;
+        if (JniHelper::getStaticMethodInfo(methodInfo,
+                                            JCLS_ARAPI,
+                                            "getRaycastTrackableId",
+                                            "(" JARG_ARAPI ")I")) {
+            auto result = static_cast<int>(methodInfo.env->CallStaticIntMethod(
+                    methodInfo.classID,
+                    methodInfo.methodID,
+                    _impl
+            ));
+            methodInfo.env->DeleteLocalRef(methodInfo.classID);
+            return result;
+        }
+    }
+    return -1;
+}
+
+int ARAndroidAPIImpl::getRaycastTrackableType() {
+    if(_impl != nullptr) {
+        JniMethodInfo methodInfo;
+        if (JniHelper::getStaticMethodInfo(methodInfo,
+                                            JCLS_ARAPI,
+                                            "getRaycastTrackableType",
+                                            "(" JARG_ARAPI ")I")) {
+            auto result = static_cast<int>(methodInfo.env->CallStaticIntMethod(
+                    methodInfo.classID,
+                    methodInfo.methodID,
+                    _impl
+            ));
+            methodInfo.env->DeleteLocalRef(methodInfo.classID);
+            return result;
+        }
+    }
+    return -1;
 }
 
 } // namespace ar

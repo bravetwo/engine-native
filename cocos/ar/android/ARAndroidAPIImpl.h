@@ -63,6 +63,14 @@ public:
     float* getUpdatedPlanesInfo() override;
     int getInfoLength() override;
     
+    int tryHitAttachAnchor(int planeIndex) override;
+    float* getAnchorPose(int index) override;
+
+    bool raycast(float xPx, float yPx) override;
+    float* getRaycastPose() override;
+    int getRaycastTrackableId() override;
+    int getRaycastTrackableType() override;
+    
 protected:
     _jobject* _impl;
     Pose *_cameraPose = new Pose();
@@ -73,11 +81,13 @@ protected:
 
     //float* _addedPlanesInfo = new float[60];
     float* _addedPlanesInfo = nullptr;
-    int* _removedPlanesInfo = new int[5];
+    int* _removedPlanesInfo = nullptr;
     //'float* _updatedPlanesInfo = new float[60];
     float* _updatedPlanesInfo = nullptr;
     int _infoLength = 0;
 
+    float* _hitPose = new float[7];
+    float* _anchorPose = new float[7];
     Semaphore _frameBoundarySemaphore{1};
 };
 
